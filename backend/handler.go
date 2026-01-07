@@ -95,7 +95,7 @@ func loginHandler(c *fiber.Ctx) error {
 			Message:   "Failed to store session data",
 		})
 	}
-	redisClient.Expire(ctx, sessionKey, 15*time.Minute)
+	redisClient.Expire(ctx, sessionKey, 24*7*time.Hour)
 
 	return c.JSON(TokenResponse{
 		AccessToken:  accessToken,
