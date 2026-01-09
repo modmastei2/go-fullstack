@@ -1,15 +1,32 @@
-basePath: /api
-host: localhost:8080
+definitions:
+  auth.TokenResponse:
+    properties:
+      accessToken:
+        type: string
+      refreshToken:
+        type: string
+      user: {}
+    type: object
+  shared.ErrorResponse:
+    properties:
+      code:
+        type: string
+      message:
+        type: string
+    type: object
 info:
   contact: {}
-  description: This is the API documentation for the KS_Wealth backend server.
-  title: KS_Wealth API
-  version: "1.0"
 paths:
-  /hash:
+  /login:
     post:
       parameters:
-      - description: Password to hash
+      - description: Username
+        in: body
+        name: username
+        required: true
+        schema:
+          type: string
+      - description: Password
         in: body
         name: password
         required: true
@@ -17,8 +34,34 @@ paths:
           type: string
       responses:
         "200":
-          description: hashed password
+          description: Tokens and user info
+          schema:
+            $ref: '#/definitions/auth.TokenResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+      summary: Login route
+      tags:
+      - Auth
+  /logout:
+    post:
+      responses:
+        "200":
+          description: Logout successful
           schema:
             type: string
-      summary: Hash Password route
+      security:
+      - ApiKeyAuth: []
+      summary: Logout route
+      tags:
+      - Auth
 swagger: "2.0"
