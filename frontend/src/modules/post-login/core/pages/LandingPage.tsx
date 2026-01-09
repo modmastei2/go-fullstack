@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { PreRoute } from '../../../../shared/constants/routes';
-
+import { Column, DataGrid } from 'devextreme-react/data-grid';
 export default function LandingPage() {
     const navigate = useNavigate();
 
@@ -25,6 +25,12 @@ export default function LandingPage() {
             <div className="cursor-pointer my-2" onClick={handleNavigateToRegister}>
                 <a className="rounded-md bg-slate-500 text-white px-4 py-2" >Register</a>
             </div>
+
+
+            <DataGrid dataSource={[{ customerCode: 'C001', customerName: 'Customer 1' }, { customerCode: 'C002', customerName: 'Customer 2' }]} showBorders={true}>
+                <Column dataField='customerCode' caption='Customer Code'></Column>
+                <Column dataField='customerName' caption='Customer Name'></Column>
+            </DataGrid>
         </>
     );
 }

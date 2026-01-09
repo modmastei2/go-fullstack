@@ -1,6 +1,6 @@
 export class PreRoute {
     static prefix = '/pre';
-    static login = '/login';
+    static login = '/';
     static loginFullPath: string = `${PreRoute.prefix}${PreRoute.login}`;
 
     static register = '/register';

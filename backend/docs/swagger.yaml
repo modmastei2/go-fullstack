@@ -1,0 +1,24 @@
+basePath: /api
+host: localhost:8080
+info:
+  contact: {}
+  description: This is the API documentation for the KS_Wealth backend server.
+  title: KS_Wealth API
+  version: "1.0"
+paths:
+  /hash:
+    post:
+      parameters:
+      - description: Password to hash
+        in: body
+        name: password
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: hashed password
+          schema:
+            type: string
+      summary: Hash Password route
+swagger: "2.0"
