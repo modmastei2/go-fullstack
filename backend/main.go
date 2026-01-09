@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/redis/go-redis/v9"
+	fiberSwagger "github.com/swaggo/fiber-swagger"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -24,15 +25,20 @@ type ErrorResponse struct {
 
 // Mock database
 var users = map[string]User{
-	"admin": {
+	"user1": {
 		UserId:   "1",
-		Username: "admin",
+		Username: "user1",
 		Password: "$2a$10$UbDFYt/ybeIfPnvIQp4rnu2PI4BckMLcPVN7SCVvD1prr2zUw9Sr.", // password
 	},
 	"user2": {
 		UserId:   "2",
 		Username: "user2",
-		Password: "user2", // password
+		Password: "$2a$10$UbDFYt/ybeIfPnvIQp4rnu2PI4BckMLcPVN7SCVvD1prr2zUw9Sr.", // password
+	},
+	"user3": {
+		UserId:   "3",
+		Username: "user3",
+		Password: "$2a$10$UbDFYt/ybeIfPnvIQp4rnu2PI4BckMLcPVN7SCVvD1prr2zUw9Sr.", // password
 	},
 }
 
@@ -42,6 +48,12 @@ var (
 	jwtSecret             []byte
 	allowMultipleSessions bool
 )
+
+// @title KS_Wealth API
+// @version 1.0
+// @description This is the API documentation for the KS_Wealth backend server.
+// @host localhost:8080
+// @BasePath /api
 
 func main() {
 	jwtSecret = []byte(getEnv("JWT_SECRET", "default_secret"))
@@ -59,6 +71,10 @@ func main() {
 	app := fiber.New(fiber.Config{
 		AppName: "KS_Wealth",
 	})
+
+	app.Get("/swagger/*", fiberSwagger.WrapHandler)
+	app.Static("/docs", "./docs")
+	app.Static("/redoc", "./public/redoc")
 
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     "http://localhost:3000, http://localhost:5173",

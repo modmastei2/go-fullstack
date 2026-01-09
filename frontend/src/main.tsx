@@ -13,6 +13,9 @@ import ForgotPassword from './modules/pre-login/login/pages/ForgotPassword';
 import PublicGuard from './shared/guards/PublicGuard';
 import NotFound from './modules/core/pages/NotFound';
 import Unauthorized from './modules/core/pages/Unauthorized';
+import 'devextreme/dist/css/dx.light.css';
+import config from 'devextreme/core/config';
+import { licenseKey } from './devextreme-license';
 
 const router = createBrowserRouter([
     {
@@ -63,6 +66,8 @@ const router = createBrowserRouter([
         element: <NotFound></NotFound>,
     },
 ]);
+
+config({ licenseKey })
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
