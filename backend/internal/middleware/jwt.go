@@ -4,7 +4,9 @@ import (
 	"context"
 	"go-backend/internal/shared"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
@@ -46,18 +48,52 @@ func AuthMiddleware(redisClient *redis.Client) fiber.Handler {
 
 		// check of session exists in redis
 		sessionKey := "session:" + claims.UserID
-		exists, err := redisClient.Exists(context.Background(), sessionKey).Result()
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(shared.ErrorResponse{
-				ErrorCode: "SESSION_CHECK_FAILED",
-				Message:   "Failed to verify session",
+		sessionData, err := redisClient.HGetAll(context.Background(), sessionKey).Result()
+		if err != nil || len(sessionData) == 0 {
+			return c.Status(fiber.StatusUnauthorized).JSON(shared.ErrorResponse{
+				ErrorCode: "SESSION_NOT_FOUND",
+				Message:   "User session not found or has expired",
 			})
 		}
 
-		if exists == 0 {
-			return c.Status(fiber.StatusUnauthorized).JSON(shared.ErrorResponse{
-				ErrorCode: "SESSION_NOT_FOUND",
-				Message:   "Session not found or has expired",
+		// check if session is locked
+		isLocked := sessionData["locked"] == "1" || sessionData["locked"] == "true"
+
+		// allow access only to unlock route if session is locked
+		allowedWhenLocked := []string{
+			"/auth/unlock",
+			"/auth/check-session",
+			"/auth/logout",
+		}
+
+		path := c.Path()
+		isAllowedPath := false
+		for _, allowPath := range allowedWhenLocked {
+			if strings.HasSuffix(path, allowPath) {
+				isAllowedPath = true
+				break
+			}
+		}
+
+		if isLocked && !isAllowedPath {
+			// check lock over 10 minutes
+			if lockedAtStr, exists := sessionData["lockedAt"]; exists {
+				lockedAt, _ := strconv.ParseInt(lockedAtStr, 10, 64)
+				lockDuration := time.Now().Unix() - lockedAt
+
+				if lockDuration > 600 {
+					// delete session
+					deleteUserSession(redisClient, claims.UserID)
+					return c.Status(fiber.StatusUnauthorized).JSON(shared.ErrorResponse{
+						ErrorCode: "LOCK_TIMEOUT",
+						Message:   "Session expire due to inactivity. Please login again.",
+					})
+				}
+			}
+
+			return c.Status(fiber.StatusForbidden).JSON(shared.ErrorResponse{
+				ErrorCode: "SESSION_LOCKED",
+				Message:   "User session is locked. Please unlock to continue.",
 			})
 		}
 
@@ -67,4 +103,18 @@ func AuthMiddleware(redisClient *redis.Client) fiber.Handler {
 
 		return c.Next()
 	}
+}
+
+// Helper function
+func deleteUserSession(redisClient *redis.Client, userId string) {
+	// ลบ refresh tokens
+	pattern := "refresh_token:" + userId + ":*"
+	keys, err := redisClient.Keys(context.Background(), pattern).Result()
+	if err == nil && len(keys) > 0 {
+		redisClient.Del(context.Background(), keys...)
+	}
+
+	// ลบ session
+	sessionKey := "session:" + userId
+	redisClient.Del(context.Background(), sessionKey)
 }

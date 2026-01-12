@@ -13,6 +13,7 @@ import ForgotPassword from './modules/pre-login/login/pages/ForgotPassword';
 import PublicGuard from './shared/guards/PublicGuard';
 import NotFound from './modules/core/pages/NotFound';
 import Unauthorized from './modules/core/pages/Unauthorized';
+import { AuthProvider } from './shared/providers/AuthProvider';
 
 const router = createBrowserRouter([
     {
@@ -66,6 +67,8 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
-        <RouterProvider router={router}></RouterProvider>
+        <AuthProvider>
+            <RouterProvider router={router} />
+        </AuthProvider>
     </StrictMode>,
 );
