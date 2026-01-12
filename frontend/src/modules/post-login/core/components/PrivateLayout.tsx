@@ -75,7 +75,9 @@ export default function PrivateLayout() {
                             <button
                                 className="bg-red-300 p-2 rounded-md cursor-pointer"
                                 onClick={() => {
-                                    localStorage.removeItem('token');
+                                    localStorage.removeItem('access_token');
+                                    localStorage.removeItem('refresh_token');
+                                    localStorage.removeItem('user');
                                     window.location.href = '/pre';
                                 }}>
                                 Logout

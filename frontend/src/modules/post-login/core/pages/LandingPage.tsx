@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { PreRoute } from '../../../../shared/constants/routes';
 import { Column, DataGrid } from 'devextreme-react/data-grid';
+import { useEffect } from 'react';
+import api from '../../../../shared/handlers/api.handler';
 export default function LandingPage() {
     const navigate = useNavigate();
 
@@ -11,6 +13,19 @@ export default function LandingPage() {
     const handleNavigateToRegister = () => {
         navigate(PreRoute.registerFullPath);
     }
+
+    useEffect(() => {
+        console.log("LandingPage mounted");
+
+        // get profile
+        api.get("/auth/profile")
+            .then((response) => {
+                console.log("Profile data:", response.data);
+            })
+            .catch((error) => {
+                console.error("Error fetching profile:", error);
+            });
+    }, [])
 
     return (
         <>
