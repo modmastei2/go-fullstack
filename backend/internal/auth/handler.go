@@ -13,7 +13,9 @@ func RegisterRoutes(app *fiber.Router, redisClient *redis.Client) {
 	auth := (*app).Group("/auth")
 
 	auth.Post("/login", authService.LoginHandler)
+	auth.Post("/refresh-token", authService.RefreshTokenHandler)
 
+	// Protected routes
 	protected := auth.Group("/", middleware.AuthMiddleware(redisClient))
 	protected.Post("/logout", authService.LogoutHandler)
 	protected.Get("/profile", authService.ProfileHandler)
