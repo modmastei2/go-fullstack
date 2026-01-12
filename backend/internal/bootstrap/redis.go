@@ -13,8 +13,6 @@ import (
 func InitializeRedis() (*redis.Client, error) {
 	dbStr := os.Getenv("REDIS_DB")
 
-	fmt.Println(dbStr)
-
 	dbParsed, err := strconv.Atoi(dbStr)
 	if err != nil {
 		return nil, err
@@ -22,9 +20,6 @@ func InitializeRedis() (*redis.Client, error) {
 
 	REDIS_ADDR := os.Getenv("REDIS_ADDR")
 	REDIS_PASSWORD := os.Getenv("REDIS_PASSWORD")
-
-	fmt.Println(REDIS_ADDR)
-	fmt.Println(REDIS_PASSWORD)
 
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     REDIS_ADDR,

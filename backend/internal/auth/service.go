@@ -160,3 +160,27 @@ func (s *AuthService) LogoutHandler(c *fiber.Ctx) error {
 		"message": "Logged out successfully",
 	})
 }
+
+func (s *AuthService) ProfileHandler(c *fiber.Ctx) error {
+	userId := c.Locals("userId").(string)
+	username := c.Locals("username").(string)
+
+	// get session info
+	sessionKey := fmt.Sprintf("session:%s", userId)
+	sessionData, err := s.redisClient.HGetAll(context.Background(), sessionKey).Result()
+
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(shared.ErrorResponse{
+			ErrorCode: "SESSION_RETRIEVAL_FAILED",
+			Message:   "Failed to retrieve session data",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"user": fiber.Map{
+			"userId":   userId,
+			"username": username,
+		},
+		"session": sessionData,
+	})
+}

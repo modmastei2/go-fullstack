@@ -3,12 +3,14 @@ package bootstrap
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go-backend/internal/auth"
 	"go-backend/internal/middleware"
 	"go-backend/internal/shared"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	_ "github.com/joho/godotenv/autoload"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
 )
@@ -27,6 +29,13 @@ func InitializeApp(app *fiber.App) {
 	app.Static("/docs", "./docs")
 	app.Static("/redoc", "./public/redoc")
 
+	// ******* CORS Middleware *******
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "http://localhost:3000, http://localhost:5173",
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+		AllowMethods: "GET, POST",
+	}))
+
 	// ******* Security Header Protocol *******
 	app.Use(func(c *fiber.Ctx) error {
 		c.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
@@ -41,11 +50,14 @@ func InitializeApp(app *fiber.App) {
 
 	// ******* Health Check Endpoint *******
 	api.Get("/health", func(c *fiber.Ctx) error {
-		return c.SendString("OK")
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"ServerStatus": "OK",
+			"ServerTime":   time.Now(),
+		})
 	})
 
 	// ******* Register Auth routes *******
-	auth.RegisterRoutes(app, redisClient)
+	auth.RegisterRoutes(&api, redisClient)
 
 	// ******* Create protected routes group *******
 	protected := api.Group("/", middleware.AuthMiddleware(redisClient))
