@@ -35,3 +35,7 @@ type TokenResponse struct {
 	RefreshToken string      `json:"refreshToken"`
 	User         interface{} `json:"user,omitempty"`
 }
+
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}

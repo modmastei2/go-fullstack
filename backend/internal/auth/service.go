@@ -139,7 +139,74 @@ func (s *AuthService) LoginHandler(c *fiber.Ctx) error {
 }
 
 func (s *AuthService) RefreshTokenHandler(c *fiber.Ctx) error {
-	return nil
+	var req RefreshTokenRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(shared.ErrorResponse{
+			ErrorCode: "INVALID_REQUEST",
+			Message:   "Invalid request body",
+		})
+	}
+
+	if req.RefreshToken == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(shared.ErrorResponse{
+			ErrorCode: "MISSING_REFRESH_TOKEN",
+			Message:   "Refresh token is required",
+		})
+	}
+
+	JWT_SECRET := []byte(os.Getenv("JWT_SECRET"))
+	claims := &shared.Claims{}
+	token, err := jwt.ParseWithClaims(req.RefreshToken, claims, func(token *jwt.Token) (interface{}, error) {
+		return JWT_SECRET, nil
+	})
+
+	if err != nil || !token.Valid {
+		return c.Status(fiber.StatusUnauthorized).JSON(shared.ErrorResponse{
+			ErrorCode: "INVALID_REFRESH_TOKEN",
+			Message:   "Refresh token is invalid or expired",
+		})
+	}
+
+	key := fmt.Sprintf("refresh_token:%s:%s", claims.UserID, claims.ID)
+	storedToken, err := s.redisClient.Get(context.Background(), key).Result()
+	if err != nil || storedToken != req.RefreshToken {
+		return c.Status(fiber.StatusUnauthorized).JSON(shared.ErrorResponse{
+			ErrorCode: "REFRESH_TOKEN_NOT_FOUND",
+			Message:   "Refresh token not found or has been revoked",
+		})
+	}
+
+	sessionKey := fmt.Sprintf("session:%s", claims.UserID)
+	exists, err := s.redisClient.Exists(context.Background(), sessionKey).Result()
+	if err != nil || exists == 0 {
+		return c.Status(fiber.StatusUnauthorized).JSON(shared.ErrorResponse{
+			ErrorCode: "SESSION_EXPIRED",
+			Message:   "Session has expired, please login again",
+		})
+	}
+
+	// Generate new access tokens
+	accessClaims := &shared.Claims{
+		UserID:   claims.UserID,
+		Username: claims.Username,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
+	accessTokenString, err := accessToken.SignedString(JWT_SECRET)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(shared.ErrorResponse{
+			ErrorCode: "TOKEN_GENERATION_FAILED",
+			Message:   "Failed to generate access token",
+		})
+	}
+
+	return c.JSON(TokenResponse{
+		AccessToken: accessTokenString,
+	})
 }
 
 func (s *AuthService) LogoutHandler(c *fiber.Ctx) error {

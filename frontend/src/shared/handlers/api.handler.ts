@@ -1,10 +1,10 @@
-import axios from 'axios';
+import axios, { type AxiosRequestHeaders } from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8080/api/v1',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+    baseURL: 'http://localhost:8080/api/v1',
+    headers: {
+        'Content-Type': 'application/json',
+    },
 });
 
 api.interceptors.request.use(
@@ -12,10 +12,8 @@ api.interceptors.request.use(
         // adding custom header before request is sent
         // config.headers["X-Request-ID"] = Math.random().toString(36).substring(7);
         // config.headers["Authorization"] = `Bearer ${localStorage.getItem("access_token")}`;
-        const token = localStorage.getItem('access_token');
-        if (token) {
-            config.headers['Authorization'] = `Bearer ${token}`;
-        }
+
+        config.headers = addTokenToHeader(config.headers as AxiosRequestHeaders);
 
         return config;
     },
@@ -51,5 +49,14 @@ api.interceptors.response.use(
         return Promise.reject(error);
     }
 )
+
+const addTokenToHeader = (headers: AxiosRequestHeaders) => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return headers;
+}
 
 export default api;
