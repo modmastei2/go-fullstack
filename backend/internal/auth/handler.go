@@ -18,5 +18,8 @@ func RegisterRoutes(app *fiber.Router, redisClient *redis.Client) {
 	// Protected routes
 	protected := auth.Group("/", middleware.AuthMiddleware(redisClient))
 	protected.Post("/logout", authService.LogoutHandler)
+	protected.Post("/lock", authService.LockSessionHandler)
+	protected.Post("/unlock", authService.UnlockSessionHandler)
+	protected.Get("/check-session", authService.CheckSessionHandler) // Check session status
 	protected.Get("/profile", authService.ProfileHandler)
 }

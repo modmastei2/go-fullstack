@@ -1,94 +1,66 @@
 import { Outlet } from 'react-router-dom';
-import { useEffect, useRef, useState } from 'react';
-import { isWindowPopup } from '../../../../shared/handlers/navigator.handler';
+import { useAuth } from '../../../../shared/hooks/useAuth';
 
-const MIN_NAVBAR_WIDTH = 60;
-const MAX_NAVBAR_WIDTH = 300;
 
 export default function PrivateLayout() {
-    const [width, setWidth] = useState(MIN_NAVBAR_WIDTH);
-    const isResizing = useRef(false);
+    const { user, logout } = useAuth();
 
-    useEffect(() => {
-        const handleMouseUp = () => {
-            isResizing.current = false;
-        };
-
-        window.addEventListener('mouseup', handleMouseUp);
-
-        return () => {
-            window.removeEventListener('mouseup', handleMouseUp);
-        };
-    }, []);
+    const handleLogout = async () => {
+        if (window.confirm('Are you sure you want to logout?')) {
+            await logout();
+        }
+    };
 
     return (
-        <>
-            <div className="flex">
-                {isWindowPopup() ? null : (
-                    <div
-                        id="navbar"
-                        className="relative bg-red-100 h-screen"
-                        style={{ width, minWidth: MIN_NAVBAR_WIDTH, maxWidth: MAX_NAVBAR_WIDTH }}
-                        onMouseMove={(e) => {
-                            if (!isResizing.current) return;
-
-                            // if (e.clientX >= MIN_NAVBAR_WIDTH && e.clientX <= MAX_NAVBAR_WIDTH) {
-                            setWidth(
-                                e.clientX <= MIN_NAVBAR_WIDTH
-                                    ? MIN_NAVBAR_WIDTH
-                                    : e.clientX >= MAX_NAVBAR_WIDTH
-                                      ? MAX_NAVBAR_WIDTH
-                                      : e.clientX,
-                            );
-                            // }
-                        }}>
-                        <div>
-                            <div
-                                id="resize-handle"
-                                className="w-7 h-screen cursor-col-resize bg-amber-100 absolute -right-3 opacity-85"
-                                onMouseDown={() => {
-                                    isResizing.current = true;
-                                    console.log('isResizing set to ', isResizing.current);
-                                }}></div>
-                            <div className="select-none">Navbar {width}</div>
+        <div className="min-h-screen bg-gray-50">
+            {/* Navigation Bar */}
+            <nav className="bg-white shadow-sm sticky top-0 z-40">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between items-center h-16">
+                        <div className="flex items-center">
+                            <h1 className="text-xl font-bold text-gray-800">My Application</h1>
                         </div>
-                    </div>
-                )}
-                <div
-                    className="w-full"
-                    // onMouseEnter={() => {
-                    //     if (isResizing.current) {
-                    //         isResizing.current = true;
-                    //         console.log('isResizing set to ', isResizing.current);
-                    //     }
-                    // }}
-                    // onMouseUp={() => {
-                    //     if (isResizing.current) {
-                    //         isResizing.current = true;
-                    //         console.log('isResizing set to ', isResizing.current);
-                    //     }
-                    // }}
-                >
-                    <div className="header bg-sky-100 p-4 select-none flex justify-between">
-                        <div>header</div>
-                        <div>
+                        
+                        <div className="flex items-center space-x-4">
+                            <div className="flex items-center space-x-2">
+                                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                    <span className="text-white text-sm font-semibold">
+                                        {user?.username?.charAt(0).toUpperCase()}
+                                    </span>
+                                </div>
+                                <span className="text-gray-700 font-medium hidden sm:block">
+                                    {user?.username}
+                                </span>
+                            </div>
+                            
                             <button
-                                className="bg-red-300 p-2 rounded-md cursor-pointer"
-                                onClick={() => {
-                                    localStorage.removeItem('access_token');
-                                    localStorage.removeItem('refresh_token');
-                                    localStorage.removeItem('user');
-                                    window.location.href = '/pre';
-                                }}>
+                                onClick={handleLogout}
+                                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-medium text-sm"
+                            >
                                 Logout
                             </button>
                         </div>
                     </div>
-                    <div className="p-4 select-none">
-                        <Outlet />
+                </div>
+            </nav>
+
+            {/* Main Content */}
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <Outlet />
+            </main>
+
+            {/* Footer */}
+            <footer className="bg-white border-t border-gray-200 mt-auto">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                    <div className="flex justify-between items-center text-sm text-gray-600">
+                        <p>© 2025 My Application. All rights reserved.</p>
+                        <div className="flex items-center space-x-2">
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                            <span>Auto-lock after 15 minutes of inactivity</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </>
+            </footer>
+        </div>
     );
-}
+};

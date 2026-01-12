@@ -39,3 +39,10 @@ type TokenResponse struct {
 type RefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
+type LockSessionRequest struct {
+	Timestamp int64 `json:"timestamp"`
+}
+
+type UnlockRequest struct {
+	Password string `json:"password"`
+}

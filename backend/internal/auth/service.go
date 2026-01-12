@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 
 	"go-backend/internal/shared"
 	"time"
@@ -250,4 +251,175 @@ func (s *AuthService) ProfileHandler(c *fiber.Ctx) error {
 		},
 		"session": sessionData,
 	})
+}
+
+func (s *AuthService) LockSessionHandler(c *fiber.Ctx) error {
+	userId := c.Locals("userId").(string)
+	sessionKey := fmt.Sprintf("session:%s", userId)
+
+	// update session to locked
+	err := s.redisClient.HSet(context.Background(), sessionKey, map[string]interface{}{
+		"locked":   true,
+		"lockedAt": time.Now().Unix(),
+	}).Err()
+
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(shared.ErrorResponse{
+			ErrorCode: "SESSION_LOCK_FAILED",
+			Message:   "Failed to lock session",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"message":  "Session locked successfully",
+		"lockedAt": time.Now().Unix(),
+	})
+}
+
+func (s *AuthService) UnlockSessionHandler(c *fiber.Ctx) error {
+	userId := c.Locals("userId").(string)
+	username := c.Locals("username").(string)
+
+	var req UnlockRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(shared.ErrorResponse{
+			ErrorCode: "INVALID_REQUEST",
+			Message:   "Invalid request body",
+		})
+	}
+
+	if req.Password == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(shared.ErrorResponse{
+			ErrorCode: "MISSING_PASSWORD",
+			Message:   "Password is required to unlock session",
+		})
+	}
+
+	// check session
+	sessionKey := fmt.Sprintf("session:%s", userId)
+	sessionData, err := s.redisClient.HGetAll(context.Background(), sessionKey).Result()
+
+	if err != nil || len(sessionData) == 0 {
+		return c.Status(fiber.StatusUnauthorized).JSON(shared.ErrorResponse{
+			ErrorCode: "SESSION_NOT_FOUND",
+			Message:   "Session not found or has expired",
+		})
+	}
+
+	// check if session is locked
+	if sessionData["locked"] != "1" && sessionData["locked"] != "true" {
+		return c.Status(fiber.StatusBadRequest).JSON(shared.ErrorResponse{
+			ErrorCode: "SESSION_NOT_LOCKED",
+			Message:   "Session is not locked",
+		})
+	}
+
+	// check lock over 10 min
+	if lockedAtStr, exists := sessionData["lockedAt"]; exists {
+		lockedAt, _ := strconv.ParseInt(lockedAtStr, 10, 64)
+		lockDuration := time.Now().Unix() - lockedAt
+
+		if lockDuration > 600 {
+			s.deleteUserSession(userId)
+			return c.Status(fiber.StatusUnauthorized).JSON(shared.ErrorResponse{
+				ErrorCode: "LOCK_TIMEOUT",
+				Message:   "Session lock timeout. Please login again.",
+			})
+		}
+	}
+
+	// verify password
+	user, exists := users[username]
+	if !exists {
+		return c.Status(fiber.StatusUnauthorized).JSON(shared.ErrorResponse{
+			ErrorCode: "USER_NOT_FOUND",
+			Message:   "User not found",
+		})
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(shared.ErrorResponse{
+			ErrorCode: "INVALID_PASSWORD",
+			Message:   "Invalid password",
+		})
+	}
+
+	// unlock session
+	err = s.redisClient.HSet(context.Background(), sessionKey, map[string]interface{}{
+		"locked":     false,
+		"lockedAt":   0,
+		"unlockedAt": time.Now().Unix(),
+	}).Err()
+
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(shared.ErrorResponse{
+			ErrorCode: "SESSION_UNLOCK_FAILED",
+			Message:   "Failed to unlock session",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"message": "Unlocked successfully",
+		"user": fiber.Map{
+			"userId":   userId,
+			"username": username,
+		},
+	})
+}
+
+func (s *AuthService) deleteUserSession(userId string) {
+	// delete all refresh tokens for the user
+	pattern := fmt.Sprintf("refresh_token:%s:*", userId)
+	keys, err := s.redisClient.Keys(context.Background(), pattern).Result()
+
+	if err == nil && len(keys) > 0 {
+		s.redisClient.Del(context.Background(), keys...)
+	}
+
+	// delete session
+	sessionKey := fmt.Sprintf("session:%s", userId)
+	s.redisClient.Del(context.Background(), sessionKey)
+}
+
+// Handler สำหรับเช็คสถานะ session
+func (s *AuthService) CheckSessionHandler(c *fiber.Ctx) error {
+	userId := c.Locals("userId").(string)
+
+	sessionKey := fmt.Sprintf("session:%s", userId)
+	sessionData, err := s.redisClient.HGetAll(context.Background(), sessionKey).Result()
+
+	if err != nil || len(sessionData) == 0 {
+		return c.Status(fiber.StatusUnauthorized).JSON(shared.ErrorResponse{
+			ErrorCode: "SESSION_EXPIRED",
+			Message:   "Session has expired",
+		})
+	}
+
+	isLocked := sessionData["locked"] == "1" || sessionData["locked"] == "true"
+
+	response := fiber.Map{
+		"locked": isLocked,
+	}
+
+	if isLocked {
+		if lockedAtStr, exists := sessionData["lockedAt"]; exists {
+			lockedAt, _ := strconv.ParseInt(lockedAtStr, 10, 64)
+			lockDuration := time.Now().Unix() - lockedAt
+
+			// ถ้า lock เกิน 10 นาที ให้ logout
+			if lockDuration > 600 {
+				s.deleteUserSession(userId)
+				return c.Status(fiber.StatusUnauthorized).JSON(shared.ErrorResponse{
+					ErrorCode: "LOCK_TIMEOUT",
+					Message:   "Session expired due to inactivity",
+				})
+			}
+
+			response["lockedAt"] = lockedAt
+			response["timeRemaining"] = 600 - lockDuration
+		}
+	}
+
+	return c.JSON(response)
 }
