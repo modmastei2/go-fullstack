@@ -1,6 +1,6 @@
 import { type ReactNode, useState, useEffect, useCallback } from 'react';
 import { AuthContext, type User, type AuthContextType } from '../context/AuthContext';
-import api from '../handlers/api.handler';
+import api, { isAxiosError } from '../handlers/api.handler';
 import useIdleDetector from '../hooks/useIdleDetector';
 import LockScreen from '../../modules/post-login/core/components/LockScreen';
 
@@ -66,10 +66,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     localStorage.setItem('session_locked', 'true');
                     localStorage.setItem('session_locked_at', lockTime.toString());
                 }
-            } catch (error) {
+            } catch (error: unknown) {
                 console.error('Failed to initialize auth:', error);
 
-                if (error.response?.status === 401 || error.response?.status === 403) {
+                if (isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
                     localStorage.removeItem('access_token');
                     localStorage.removeItem('refresh_token');
                     localStorage.removeItem('session_locked');
@@ -187,17 +187,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
             localStorage.removeItem('session_locked');
             localStorage.removeItem('session_locked_at');
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Unlock session failed:', error);
 
-            // ถ้าเป็น error แบบ wrong password ให้ throw ต่อ
-            if (error.response?.status === 401 && error.response?.data?.message?.includes('password')) {
-                throw error;
-            }
+            if (isAxiosError(error)) {
+                // ถ้าเป็น error แบบ wrong password ให้ throw ต่อ
+                if (error.response?.status === 401 && error.response?.data?.message?.includes('password')) {
+                    throw error;
+                }
 
-            // ถ้าเป็น error อื่นๆ (เช่น token หมดอายุ) ให้ logout
-            if (error.response?.status === 401 || error.response?.status === 403) {
-                await logout();
+                // ถ้าเป็น error อื่นๆ (เช่น token หมดอายุ) ให้ logout
+                if (error.response?.status === 401 || error.response?.status === 403) {
+                    await logout();
+                }
             }
 
             throw error;

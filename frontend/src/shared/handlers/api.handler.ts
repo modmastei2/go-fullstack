@@ -1,4 +1,4 @@
-import axios, { type AxiosRequestHeaders, type InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError, type AxiosRequestHeaders, type InternalAxiosRequestConfig } from 'axios';
 
 const api = axios.create({
     baseURL: 'http://localhost:8080/api/v1',
@@ -157,6 +157,15 @@ const addTokenToHeader = (headers: AxiosRequestHeaders) => {
     }
 
     return headers;
+}
+
+export interface ApiErrorResponse {
+    errorCode: string;
+    message: string;
+}
+
+export function isAxiosError(error: unknown): error is AxiosError<ApiErrorResponse> {
+    return (error as AxiosError).isAxiosError === true;
 }
 
 
