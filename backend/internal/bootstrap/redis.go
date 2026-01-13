@@ -18,11 +18,12 @@ func InitializeRedis() (*redis.Client, error) {
 		return nil, err
 	}
 
-	REDIS_ADDR := os.Getenv("REDIS_ADDR")
+	REDIS_HOST := os.Getenv("REDIS_HOST")
+	REDIS_PORT := os.Getenv("REDIS_PORT")
 	REDIS_PASSWORD := os.Getenv("REDIS_PASSWORD")
 
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     REDIS_ADDR,
+		Addr:     fmt.Sprintf("%s:%s", REDIS_HOST, REDIS_PORT),
 		Password: REDIS_PASSWORD, // no password set
 		DB:       dbParsed,       // use default DB
 	})
