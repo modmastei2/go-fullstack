@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	_ "github.com/joho/godotenv/autoload"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -29,15 +28,19 @@ func InitializeRedis() (*redis.Client, error) {
 		DB:       dbParsed,       // use default DB
 	})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	for i := 0; i <= 5; i++ {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		err := redisClient.Ping(ctx).Err()
+		defer cancel()
 
-	_, err = redisClient.Ping(ctx).Result()
-	if err != nil {
-		return nil, err
+		if err == nil {
+			fmt.Println("✓ Redis client initialized successfully")
+			return redisClient, nil
+		}
+
+		fmt.Printf("Redis not ready (%d/5): %v\n", i, err)
+		time.Sleep(2 * time.Second)
 	}
 
-	fmt.Println("✓ Redis client initialized successfully")
-
-	return redisClient, nil
+	return nil, fmt.Errorf("Redis not available")
 }

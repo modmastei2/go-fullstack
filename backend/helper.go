@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-
-	_ "github.com/joho/godotenv/autoload"
 )
 
 func getEnv(key, defaultValue string) string {

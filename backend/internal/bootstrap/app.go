@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"go-backend/internal/auth"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	_ "github.com/joho/godotenv/autoload"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
 )
 
@@ -21,7 +21,7 @@ func InitializeApp(app *fiber.App) {
 	// ******* Initialize Redis *******
 	redisClient, err := InitializeRedis()
 	if err != nil {
-		panic(fmt.Sprintf("Failed to initialize Redis: %v", err))
+		log.Fatal(err)
 	}
 
 	// ******* Setup Swagger and Static File Serving *******
