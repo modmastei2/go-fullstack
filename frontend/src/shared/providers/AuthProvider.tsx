@@ -16,7 +16,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
     useIdleDetector({
-        idleTimeout: 15 * 60 * 1000, // 15 นาที
+        idleTimeout: 1 * 60 * 1000, // 15 นาที
         onIdle: async () => {
             if (user && !isLocked) {
                 console.log('User is idle. Locking session...');
