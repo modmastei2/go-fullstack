@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../shared/hooks/useAuth';
+import { isAxiosError } from '../../../../shared/handlers/api.handler';
 
 export default function Login() {
     const [username, setUsername] = useState('');
@@ -18,8 +19,9 @@ export default function Login() {
         try {
             await login(username, password);
             navigate('/', { replace: true });
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Login failed. Please try again.');
+        } catch (err: unknown) {
+            const errs = isAxiosError(err) ? err : null;
+            setError(errs?.response?.data?.message || 'Login failed. Please try again.');
         } finally {
             setLoading(false);
         }

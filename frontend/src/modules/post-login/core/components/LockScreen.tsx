@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { isAxiosError } from '../../../../shared/handlers/api.handler';
 
 interface LockScreenProps {
     username: string;
@@ -40,8 +41,9 @@ const LockScreen: React.FC<LockScreenProps> = ({ username, onUnlock, onLogout, l
         try {
             await onUnlock(password);
             setPassword(''); // Clear password after successful unlock
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Invalid password');
+        } catch (err: unknown) {
+            const errs = isAxiosError(err) ? err : null;
+            setError(errs?.response?.data?.message || 'Invalid password');
         } finally {
             setLoading(false);
         }
