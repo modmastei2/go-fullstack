@@ -3,9 +3,9 @@ package auth
 import (
 	"context"
 	"fmt"
-	"os"
 	"strconv"
 
+	"go-backend/internal/config"
 	"go-backend/internal/shared"
 	"time"
 
@@ -27,7 +27,8 @@ func NewAuthService(redisClient *redis.Client) *AuthService {
 }
 
 func (s *AuthService) GenerateToken(userID, username string) (string, string, error) {
-	JWT_SECRET := []byte(os.Getenv("JWT_SECRET"))
+	cfg := config.GetConfig()
+	JWT_SECRET := []byte(cfg.Secrets.JWT_SECRET)
 	accessClaims := &shared.Claims{
 		UserID:   userID,
 		Username: username,
@@ -155,7 +156,8 @@ func (s *AuthService) RefreshTokenHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	JWT_SECRET := []byte(os.Getenv("JWT_SECRET"))
+	cfg := config.GetConfig()
+	JWT_SECRET := []byte(cfg.Secrets.JWT_SECRET)
 	claims := &shared.Claims{}
 	token, err := jwt.ParseWithClaims(req.RefreshToken, claims, func(token *jwt.Token) (interface{}, error) {
 		return JWT_SECRET, nil
