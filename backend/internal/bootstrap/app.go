@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"go-backend/internal/auth"
+	"go-backend/internal/config"
 	"go-backend/internal/middleware"
 	"go-backend/internal/shared"
 
@@ -16,7 +17,31 @@ import (
 )
 
 func InitializeApp(app *fiber.App) {
-	ctx := context.Background()
+	// ******* Initialize Config *******
+	config.InitConfig()
+	config.LoadEnv()
+
+	cfg := config.GetConfig()
+
+	if cfg.Env.APP_ENV == "" ||
+		cfg.Env.VAULT_HOST == "" ||
+		cfg.Env.VAULT_PORT == "" ||
+		(cfg.Env.VAULT_TOKEN == "" && cfg.Env.VAULT_DEV_MODE) ||
+		(cfg.Env.VAULT_ROLE == "" && !cfg.Env.VAULT_DEV_MODE) {
+		log.Fatal("Missing required environment variables")
+	}
+
+	// ******* Initialize Vault Client *******
+	vaultClient, err := InitializeVault()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// ******* Load Secrets from Vault *******
+	err = config.LoadSecrets(vaultClient)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// ******* Initialize Redis *******
 	redisClient, err := InitializeRedis()
@@ -69,7 +94,7 @@ func InitializeApp(app *fiber.App) {
 
 		// get session info
 		sessionKey := fmt.Sprintf("session:%s", userId)
-		sessionData, err := redisClient.HGetAll(ctx, sessionKey).Result()
+		sessionData, err := redisClient.HGetAll(context.Background(), sessionKey).Result()
 
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(shared.ErrorResponse{

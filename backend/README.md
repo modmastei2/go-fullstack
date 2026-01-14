@@ -19,7 +19,7 @@ docker build -t backend:1.0 .
 
 ### Serve Docker
 ```sh
-docker compose --env-file .env.prod up --build
+docker compose --env-file .env.docker up --build
 ```
 
 ___

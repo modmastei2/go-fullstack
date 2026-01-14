@@ -3,7 +3,8 @@ package bootstrap
 import (
 	"context"
 	"fmt"
-	"os"
+	"go-backend/internal/config"
+	"log"
 	"strconv"
 	"time"
 
@@ -11,21 +12,17 @@ import (
 )
 
 func InitializeRedis() (*redis.Client, error) {
-	dbStr := os.Getenv("REDIS_DB")
+	cfg := config.GetConfig()
 
-	dbParsed, err := strconv.Atoi(dbStr)
+	dbParsed, err := strconv.Atoi(cfg.Env.REDIS_DB)
 	if err != nil {
 		return nil, err
 	}
 
-	REDIS_HOST := os.Getenv("REDIS_HOST")
-	REDIS_PORT := os.Getenv("REDIS_PORT")
-	REDIS_PASSWORD := os.Getenv("REDIS_PASSWORD")
-
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%s", REDIS_HOST, REDIS_PORT),
-		Password: REDIS_PASSWORD, // no password set
-		DB:       dbParsed,       // use default DB
+		Addr:     fmt.Sprintf("%s:%s", cfg.Env.REDIS_HOST, cfg.Env.REDIS_PORT),
+		Password: cfg.Secrets.REDIS_PASSWORD,
+		DB:       dbParsed,
 	})
 
 	for i := 0; i <= 5; i++ {
@@ -34,11 +31,11 @@ func InitializeRedis() (*redis.Client, error) {
 		defer cancel()
 
 		if err == nil {
-			fmt.Println("✓ Redis client initialized successfully")
+			log.Println("✓ Redis client initialized successfully")
 			return redisClient, nil
 		}
 
-		fmt.Printf("Redis not ready (%d/5): %v\n", i, err)
+		log.Printf("Redis not ready (%d/5): %v\n", i, err)
 		time.Sleep(2 * time.Second)
 	}
 
