@@ -25,7 +25,7 @@ func InitializeVault() (*api.Client, error) {
 		return nil, err
 	}
 
-	const maxRetry = 5
+	maxRetry := cfg.Env.INIT_MAX_RETRY
 
 	for attempt := 1; attempt <= maxRetry; attempt++ {
 		var token string = cfg.Env.VAULT_TOKEN

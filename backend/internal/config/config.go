@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"go-backend/internal/shared"
 	"log"
 	"os"
 	"sync"
@@ -18,7 +19,8 @@ type Config struct {
 }
 
 type EnvironmentConfig struct {
-	APP_ENV string
+	APP_ENV        string
+	INIT_MAX_RETRY int
 	// vault
 	VAULT_DEV_MODE bool
 	VAULT_HOST     string
@@ -68,6 +70,7 @@ func LoadEnv() {
 
 	cfg.Env = EnvironmentConfig{
 		APP_ENV:        APP_ENV,
+		INIT_MAX_RETRY: shared.StringToIntWithDefault(os.Getenv("INIT_MAX_RETRY"), 5),
 		VAULT_DEV_MODE: os.Getenv("VAULT_DEV_MODE") == "true",
 		VAULT_HOST:     os.Getenv("VAULT_HOST"),
 		VAULT_PORT:     os.Getenv("VAULT_PORT"),

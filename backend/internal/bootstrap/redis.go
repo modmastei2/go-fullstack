@@ -18,26 +18,34 @@ func InitializeRedis() (*redis.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("REDIS_PASSWORD:", cfg.Secrets.REDIS_PASSWORD)
+
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%s", cfg.Env.REDIS_HOST, cfg.Env.REDIS_PORT),
 		Password: cfg.Secrets.REDIS_PASSWORD,
 		DB:       dbParsed,
 	})
 
-	for i := 0; i <= 5; i++ {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		err := redisClient.Ping(ctx).Err()
-		defer cancel()
+	maxRetry := cfg.Env.INIT_MAX_RETRY
+
+	for attempt := 1; attempt <= maxRetry; attempt++ {
+		err = verifyRedis(redisClient)
 
 		if err == nil {
 			log.Println("✓ Redis client initialized successfully")
 			return redisClient, nil
 		}
 
-		log.Printf("Redis not ready (%d/5): %v\n", i, err)
-		time.Sleep(2 * time.Second)
+		log.Printf("Redis not ready (%d/%d): %v\n", attempt, maxRetry, err)
+		time.Sleep(time.Duration(attempt) * time.Second)
 	}
 
-	return nil, fmt.Errorf("Redis not available")
+	return nil, fmt.Errorf("Redis initialization failed after %d attempts", maxRetry)
+}
+
+func verifyRedis(client *redis.Client) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	err := client.Ping(ctx).Err()
+
+	return err
 }
