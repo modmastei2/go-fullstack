@@ -18,7 +18,7 @@ func InitializeRedis() (*redis.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	fmt.Println("REDIS_PASSWORD:", cfg.Secrets.REDIS_PASSWORD)
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%s", cfg.Env.REDIS_HOST, cfg.Env.REDIS_PORT),
 		Password: cfg.Secrets.REDIS_PASSWORD,
