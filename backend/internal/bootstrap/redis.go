@@ -19,8 +19,12 @@ func InitializeRedis() (*redis.Client, error) {
 		return nil, err
 	}
 
+	endpoint := fmt.Sprintf("%s:%s", cfg.Env.REDIS_HOST, cfg.Env.REDIS_PORT)
+	if endpoint == ":" {
+		return nil, fmt.Errorf("invalid redis endpoint")
+	}
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%s", cfg.Env.REDIS_HOST, cfg.Env.REDIS_PORT),
+		Addr:     endpoint,
 		Password: cfg.Secrets.REDIS_PASSWORD,
 		DB:       dbParsed,
 	})

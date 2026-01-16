@@ -18,7 +18,11 @@ func InitializeVault() (*api.Client, error) {
 	cfg := config.GetConfig()
 
 	apiConfig := api.DefaultConfig()
-	apiConfig.Address = fmt.Sprintf("%s:%s", cfg.Env.VAULT_HOST, cfg.Env.VAULT_PORT)
+	endpoint := fmt.Sprintf("%s:%s", cfg.Env.VAULT_HOST, cfg.Env.VAULT_PORT)
+	if endpoint == ":" {
+		return nil, fmt.Errorf("invalid vault endpoint")
+	}
+	apiConfig.Address = endpoint
 
 	client, err := api.NewClient(apiConfig)
 	if err != nil {

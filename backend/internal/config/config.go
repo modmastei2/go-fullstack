@@ -31,6 +31,11 @@ type EnvironmentConfig struct {
 	REDIS_HOST string
 	REDIS_PORT string
 	REDIS_DB   string
+	// minio
+	MINIO_HOST    string
+	MINIO_PORT    string
+	MINIO_BUCKET  string
+	MINIO_USE_SSL bool
 }
 
 type SecretsConfig struct {
@@ -39,6 +44,10 @@ type SecretsConfig struct {
 
 	// redis
 	REDIS_PASSWORD string
+
+	// minio
+	MINIO_ROOT_USER     string
+	MINIO_ROOT_PASSWORD string
 }
 
 var (
@@ -79,6 +88,10 @@ func LoadEnv() {
 		REDIS_HOST:     os.Getenv("REDIS_HOST"),
 		REDIS_PORT:     os.Getenv("REDIS_PORT"),
 		REDIS_DB:       os.Getenv("REDIS_DB"),
+		MINIO_HOST:     os.Getenv("MINIO_HOST"),
+		MINIO_PORT:     os.Getenv("MINIO_PORT"),
+		MINIO_BUCKET:   os.Getenv("MINIO_BUCKET"),
+		MINIO_USE_SSL:  os.Getenv("MINIO_USE_SSL") == "true",
 	}
 
 	log.Println("✓ Environment variables loaded successfully")
@@ -106,10 +119,22 @@ func LoadSecrets(client *api.Client) error {
 		return err
 	}
 
+	minioRootUser, err := getKV(client, "secret", "fiber-app", "minio_root_user")
+	if err != nil {
+		return err
+	}
+
+	minioRootPassword, err := getKV(client, "secret", "fiber-app", "minio_root_password")
+	if err != nil {
+		return err
+	}
+
 	cfg.Secrets = SecretsConfig{
-		JWT_SECRET:     jwt,
-		DB_PASSWORD:    dbPassword,
-		REDIS_PASSWORD: redisPassword,
+		JWT_SECRET:          jwt,
+		DB_PASSWORD:         dbPassword,
+		REDIS_PASSWORD:      redisPassword,
+		MINIO_ROOT_USER:     minioRootUser,
+		MINIO_ROOT_PASSWORD: minioRootPassword,
 	}
 
 	log.Println("✓ Secrets loaded from Vault successfully")
