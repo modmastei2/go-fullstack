@@ -31,6 +31,6 @@ services:
         curl -X POST \
           -H "X-Vault-Token: toor" \
           -H "Content-Type: application/json" \
-          -d "{\"data\":{\"jwt_secret\":\"e4dc8542b2a656613680dd0ff5f87b8f79041b4def0f79717469fe17a4d7a6b9\",\"db_password\":\"superuser01\",\"redis_password\":\"\"}}" \
+          -d "{\"data\":{\"jwt_secret\":\"e4dc8542b2a656613680dd0ff5f87b8f79041b4def0f79717469fe17a4d7a6b9\",\"db_password\":\"superuser01\",\"redis_password\":\"\", \"minio_root_user\":\"minioadmin\", \"minio_root_password\":\"miniopassword\"}}" \
           http://vault:8200/v1/secret/data/fiber-app
       '

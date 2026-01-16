@@ -49,6 +49,12 @@ func InitializeApp(app *fiber.App) {
 		log.Fatal(err)
 	}
 
+	// ******* Initialize MinIO *******
+	_, err = InitializeMinio()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// ******* Setup Swagger and Static File Serving *******
 	app.Get("/swagger/*", fiberSwagger.WrapHandler)
 	app.Static("/docs", "./docs")
