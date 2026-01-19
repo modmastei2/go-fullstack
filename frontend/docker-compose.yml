@@ -8,10 +8,6 @@ services:
     env_file:
       - .env.prod
     # จำกัดการใช้ memory สูงสุดไม่เกิน 128MB เพื่อลดการใช้ทรัพยากร
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-        reservations:
-          memory: 64M
+    mem_limit: 128M
+    mem_reservation: 64M
     restart: unless-stopped

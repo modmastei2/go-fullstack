@@ -9,10 +9,6 @@ services:
     env_file:
       - .env.docker
     # จำกัดการใช้ memory สูงสุดไม่เกิน 256MB เพื่อลดการใช้ทรัพยากร
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-        reservations:
-          memory: 128M
+    mem_limit: 256M
+    mem_reservation: 128M
     restart: unless-stopped

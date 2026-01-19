@@ -2,6 +2,8 @@ services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
     container_name: elasticsearch
+    networks:
+      - elk
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -13,49 +15,78 @@ services:
     volumes:
       - es_data:/usr/share/elasticsearch/data
     # จำกัดการใช้ memory สูงสุดไม่เกิน 512MB เพื่อลดการใช้ทรัพยากร
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
+    mem_limit: 512M
+    mem_reservation: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
     restart: unless-stopped
 
   kibana:
+    networks:
+      - elk
     image: docker.elastic.co/kibana/kibana:8.12.0
     container_name: kibana
     environment:
       ELASTICSEARCH_HOSTS: "http://elasticsearch:9200"
-      # ลดการใช้ memory: จำกัด Node.js heap size ที่ 256MB
-      NODE_OPTIONS: "--max-old-space-size=256"
+      # ตั้ง Node.js heap size ที่ 512MB (ขั้นต่ำที่ Kibana ทำงานได้จริง)
+      NODE_OPTIONS: "--max-old-space-size=512"
     ports:
       - "5601:5601"
     depends_on:
       - elasticsearch
-    # จำกัดการใช้ memory สูงสุดไม่เกิน 384MB
-    deploy:
-      resources:
-        limits:
-          memory: 384M
-        reservations:
-          memory: 256M
+    # จำกัดการใช้ memory ที่ 768MB (ขั้นต่ำที่ Kibana ต้องการ)
+    mem_limit: 768M
+    mem_reservation: 512M
     restart: unless-stopped
 
   fluent-bit:
     image: fluent/fluent-bit:2.2
     container_name: fluent-bit
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - elk
     volumes:
       - ./config/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
       - ./config/parsers.conf:/fluent-bit/etc/parsers.conf
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
     # จำกัดการใช้ memory สูงสุดไม่เกิน 128MB
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-        reservations:
-          memory: 64M
+    mem_limit: 128M
+    mem_reservation: 64M
     restart: unless-stopped
+
+  # สร้าง data view อัตโนมัติใน Kibana
+  kibana-init:
+    image: curlimages/curl:8.5.0
+    networks:
+      - elk
+    depends_on:
+      - kibana
+    command: |
+      sh -c '
+        echo "Waiting for Kibana to be ready..."
+        until curl -sf http://kibana:5601/api/status > /dev/null; do
+          echo "Still waiting for Kibana..."
+          sleep 5
+        done
+        echo "Kibana is ready! Creating data view..."
+        curl -X POST "http://kibana:5601/api/data_views/data_view" \
+          -H "kbn-xsrf: true" \
+          -H "Content-Type: application/json" \
+          -d "{\"data_view\":{\"title\":\"docker-logs-*\",\"name\":\"Docker Logs\",\"timeFieldName\":\"@timestamp\"}}"
+        echo ""
+        echo "Data view created successfully!"
+      '
+    mem_limit: 32M
+
+
+networks:
+  elk:
+    driver: bridge
 
 volumes:
   es_data:
