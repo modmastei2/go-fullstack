@@ -37,3 +37,6 @@ go get -u github.com/swaggo/swag
 ```sh
 swag init -g cmd/api/main.go 
 ```
+
+ดู API Spec
+http://127.0.0.1:8080/redoc

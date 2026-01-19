@@ -13,7 +13,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	fiberSwagger "github.com/swaggo/fiber-swagger"
 )
 
 func InitializeApp(app *fiber.App) {
@@ -57,11 +56,6 @@ func InitializeApp(app *fiber.App) {
 
 	// ******* Logging Middleware *******
 	app.Use(middleware.LoggerMiddleware())
-
-	// ******* Setup Swagger and Static File Serving *******
-	app.Get("/swagger/*", fiberSwagger.WrapHandler)
-	app.Static("/docs", "./docs")
-	app.Static("/redoc", "./public/redoc")
 
 	// ******* CORS Middleware *******
 	app.Use(cors.New(cors.Config{
