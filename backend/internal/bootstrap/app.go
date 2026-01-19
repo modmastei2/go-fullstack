@@ -55,6 +55,9 @@ func InitializeApp(app *fiber.App) {
 		log.Fatal(err)
 	}
 
+	// ******* Logging Middleware *******
+	app.Use(middleware.LoggerMiddleware())
+
 	// ******* Setup Swagger and Static File Serving *******
 	app.Get("/swagger/*", fiberSwagger.WrapHandler)
 	app.Static("/docs", "./docs")
