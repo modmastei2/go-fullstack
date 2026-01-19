@@ -20,6 +20,7 @@ type Config struct {
 
 type EnvironmentConfig struct {
 	APP_ENV        string
+	SYSTEM_NAME    string
 	INIT_MAX_RETRY int
 	// vault
 	VAULT_DEV_MODE bool
@@ -79,6 +80,7 @@ func LoadEnv() {
 
 	cfg.Env = EnvironmentConfig{
 		APP_ENV:        APP_ENV,
+		SYSTEM_NAME:    os.Getenv("SYSTEM_NAME"),
 		INIT_MAX_RETRY: shared.StringToIntWithDefault(os.Getenv("INIT_MAX_RETRY"), 5),
 		VAULT_DEV_MODE: os.Getenv("VAULT_DEV_MODE") == "true",
 		VAULT_HOST:     os.Getenv("VAULT_HOST"),
