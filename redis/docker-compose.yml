@@ -7,6 +7,11 @@ services:
       - ${REDIS_PASSWORD}
       - --appendonly
       - "yes"
+      # ลดการใช้ memory: จำกัด Redis ใช้ memory สูงสุด 64MB พร้อม LRU eviction policy
+      - --maxmemory
+      - "64mb"
+      - --maxmemory-policy
+      - "allkeys-lru"
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
@@ -18,6 +23,13 @@ services:
       - .env
     volumes:
       - redis_data:/data
+    # จำกัดการใช้ memory สูงสุดไม่เกิน 128MB เพื่อลดการใช้ทรัพยากร
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
     restart: unless-stopped
 
 volumes:

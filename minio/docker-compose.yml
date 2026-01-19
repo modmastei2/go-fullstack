@@ -11,6 +11,13 @@ services:
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
+    # จำกัดการใช้ memory สูงสุดไม่เกิน 256MB เพื่อลดการใช้ทรัพยากร
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
     restart: unless-stopped
 
 volumes:

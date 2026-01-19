@@ -18,6 +18,13 @@ services:
       VAULT_DEV_ROOT_TOKEN_ID: "toor"
       VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
     command: vault server -dev
+    # จำกัดการใช้ memory สูงสุดไม่เกิน 128MB เพื่อลดการใช้ทรัพยากร
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
     restart: unless-stopped
 
   # ใช้ curl ยิงไป init ค่าเริ่มต้นใน Vault
@@ -34,3 +41,8 @@ services:
           -d "{\"data\":{\"jwt_secret\":\"e4dc8542b2a656613680dd0ff5f87b8f79041b4def0f79717469fe17a4d7a6b9\",\"db_password\":\"superuser01\",\"redis_password\":\"\", \"minio_root_user\":\"minioadmin\", \"minio_root_password\":\"miniopassword\"}}" \
           http://vault:8200/v1/secret/data/fiber-app
       '
+    # จำกัดการใช้ memory สำหรับ init container
+    deploy:
+      resources:
+        limits:
+          memory: 32M
