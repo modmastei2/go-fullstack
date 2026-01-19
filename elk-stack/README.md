@@ -10,6 +10,30 @@ docker compose up -d
 - **Kibana**: http://localhost:5601
 - **Fluent Bit**: รับ logs จาก Docker containers
 
+### การกรอง Logs ตาม Container
+แก้ไขไฟล์ `config/fluent-bit.conf`:
+
+**เก็บเฉพาะบาง containers:**
+```ini
+[FILTER]
+    Name    grep
+    Match   docker
+    Regex   log backend|frontend|redis
+```
+
+**ตัดบาง containers ออก:**
+```ini
+[FILTER]
+    Name    grep
+    Match   docker
+    Exclude log elasticsearch|kibana|fluent-bit
+```
+
+หลังแก้ config ให้ restart:
+```sh
+docker compose restart fluent-bit
+```
+
 ### การดู Logs ใน Kibana
 1. เปิด Kibana: http://localhost:5601
 2. ไปที่ **Menu** → **Discover** เพื่อดู logs
