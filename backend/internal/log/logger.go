@@ -10,6 +10,7 @@ import (
 )
 
 type Logger struct {
+	cfg *config.Config
 }
 
 var logger *Logger
@@ -22,47 +23,46 @@ func GetLogger() *Logger {
 }
 
 func initLogger() {
-	logger = &Logger{}
+	logger = &Logger{
+		cfg: config.GetConfig(),
+	}
 }
 
-func (l *Logger) Info(c *fiber.Ctx, msg string, fields map[string]interface{}) {
-	cfg := config.GetConfig()
-	// Implement info level logging
-	structured := map[string]interface{}{
-		"timestamp":   time.Now().Format(time.RFC3339),
-		"level":       "INFO",
-		"system_name": cfg.Env.SYSTEM_NAME,
-		"method":      c.Method(),
-		"path":        c.Path(),
-		"client_ip":   c.IP(),
-		"user_agent":  c.Get("User-Agent"),
-		"message":     msg,
+func (l *Logger) baseFields(c *fiber.Ctx, level, msg string) map[string]interface{} {
+	return map[string]interface{}{
+		"timestamp":  time.Now().Format(time.RFC3339),
+		"level":      level,
+		"system":     l.cfg.Env.SYSTEM_NAME,
+		"method":     c.Method(),
+		"path":       c.OriginalURL(),
+		"client_ip":  c.IP(),
+		"user_agent": c.Get("User-Agent"),
+		"message":    msg,
 	}
+}
 
-	for k, v := range fields {
-		structured[k] = v
+func (l *Logger) Info(c *fiber.Ctx, msg string, fields ...map[string]interface{}) {
+	// Implement info level logging
+	structured := l.baseFields(c, "INFO", msg)
+
+	if len(fields) > 0 {
+		for k, v := range fields[0] {
+			structured[k] = v
+		}
 	}
 
 	logData, _ := json.Marshal(structured)
 	log.Println(string(logData))
 }
 
-func (l *Logger) Error(c *fiber.Ctx, err error, fields map[string]interface{}) {
-	cfg := config.GetConfig()
+func (l *Logger) Error(c *fiber.Ctx, err error, fields ...map[string]interface{}) {
 	// Implement error level logging
-	structured := map[string]interface{}{
-		"timestamp":   time.Now().Format(time.RFC3339),
-		"level":       "ERROR",
-		"system_name": cfg.Env.SYSTEM_NAME,
-		"method":      c.Method(),
-		"path":        c.Path(),
-		"client_ip":   c.IP(),
-		"user_agent":  c.Get("User-Agent"),
-		"error":       err.Error(),
-	}
+	structured := l.baseFields(c, "ERROR", err.Error())
 
-	for k, v := range fields {
-		structured[k] = v
+	if len(fields) > 0 {
+		for k, v := range fields[0] {
+			structured[k] = v
+		}
 	}
 
 	logData, _ := json.Marshal(structured)
