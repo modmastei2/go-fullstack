@@ -19,6 +19,9 @@ func InitializeApp(app *fiber.App) {
 	// ******* Allow HTTP Methods *******
 	app.Use(middleware.HttpMethodMiddleware())
 
+	// ******* Security Header Protocol Middleware *******
+	app.Use(middleware.SecurityHeaderMiddleware())
+
 	// ******* Initialize Config *******
 	config.InitConfig()
 	config.LoadEnv()
@@ -66,15 +69,6 @@ func InitializeApp(app *fiber.App) {
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 		AllowMethods: "GET, POST",
 	}))
-
-	// ******* Security Header Protocol *******
-	app.Use(func(c *fiber.Ctx) error {
-		c.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-		c.Set("Content-Security-Policy", "default-src 'self'")
-		c.Set("X-Content-Type-Options", "nosniff")
-		c.Set("X-Frame-Options", "DENY")
-		return c.Next()
-	})
 
 	// ******* Create API routes group *******
 	api := app.Group("/api/v1")

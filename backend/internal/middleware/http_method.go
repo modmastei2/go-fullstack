@@ -14,7 +14,7 @@ func HttpMethodMiddleware() fiber.Handler {
 			"DELETE":  false,
 			"PATCH":   false,
 			"OPTIONS": false,
-			"HEAD":    false,
+			"HEAD":    true,
 		}
 
 		if allowed, exists := allowedMethods[method]; exists && allowed {
