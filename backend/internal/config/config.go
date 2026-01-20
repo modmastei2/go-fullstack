@@ -22,6 +22,9 @@ type EnvironmentConfig struct {
 	APP_ENV        string
 	SYSTEM_NAME    string
 	INIT_MAX_RETRY int
+	// cors
+	CORS_ALLOW_ORIGINS string
+
 	// vault
 	VAULT_DEV_MODE bool
 	VAULT_HOST     string

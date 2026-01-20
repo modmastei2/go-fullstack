@@ -12,7 +12,6 @@ import (
 	"go-backend/internal/shared"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 func InitializeApp(app *fiber.App) {
@@ -21,6 +20,9 @@ func InitializeApp(app *fiber.App) {
 
 	// ******* Security Header Protocol Middleware *******
 	app.Use(middleware.SecurityHeaderMiddleware())
+
+	// ******* CORS Middleware *******
+	app.Use(middleware.CorsMiddleware())
 
 	// ******* Initialize Config *******
 	config.InitConfig()
@@ -62,13 +64,6 @@ func InitializeApp(app *fiber.App) {
 
 	// ******* Logging Middleware *******
 	app.Use(middleware.LoggerMiddleware())
-
-	// ******* CORS Middleware *******
-	app.Use(cors.New(cors.Config{
-		AllowOrigins: "http://localhost:3000, http://localhost:5173",
-		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
-		AllowMethods: "GET, POST",
-	}))
 
 	// ******* Create API routes group *******
 	api := app.Group("/api/v1")
