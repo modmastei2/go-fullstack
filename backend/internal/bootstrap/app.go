@@ -21,9 +21,8 @@ func InitializeApp(app *fiber.App) {
 	// ******* Security Header Protocol Middleware *******
 	app.Use(middleware.SecurityHeaderMiddleware())
 
-	// ******* Initialize Config *******
-	config.InitConfig()
-	config.LoadEnv()
+	// ******* CORS Middleware ******* (load after config)
+	app.Use(middleware.CorsMiddleware())
 
 	cfg := config.GetConfig()
 
@@ -58,9 +57,6 @@ func InitializeApp(app *fiber.App) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// ******* CORS Middleware ******* (load after config)
-	app.Use(middleware.CorsMiddleware())
 
 	// ******* Logging Middleware *******
 	app.Use(middleware.LoggerMiddleware())

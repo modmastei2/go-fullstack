@@ -2,6 +2,7 @@ package main
 
 import (
 	"go-backend/internal/bootstrap"
+	"go-backend/internal/config"
 
 	"github.com/gofiber/fiber/v2"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
@@ -13,8 +14,14 @@ import (
 // @host localhost:8080
 // @BasePath /api/v1
 func main() {
+	// ******* Initialize Config *******
+	config.InitConfig()
+	config.LoadEnv()
+
 	app := fiber.New(fiber.Config{
-		AppName: "KS_WEALTH_API",
+		AppName:               "KS_WEALTH_API",
+		ServerHeader:          "",
+		DisableStartupMessage: true,
 	})
 
 	// ******* Setup Swagger and Static File Serving *******
