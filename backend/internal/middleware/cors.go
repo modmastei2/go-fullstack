@@ -18,4 +18,14 @@ func CorsMiddleware() fiber.Handler {
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 		AllowMethods: "GET, POST",
 	})
+
+	// สำหรับการเปิดใช้งาน CORS อย่างละเอียด + Cookies
+	// app.Use(cors.New(cors.Config{
+	// AllowOrigins:     allowedOrigins,
+	// AllowCredentials: true,  // เปิดเพราะใช้ cookies
+	// AllowHeaders:     "Origin, Content-Type, Accept",
+	// AllowMethods:     "GET, POST, PUT, DELETE",
+	// MaxAge:           3600,
+	// ExposeHeaders:    "Content-Length",
+	// }))
 }
