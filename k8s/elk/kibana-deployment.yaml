@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: go-fullstack
+  labels:
+    app: kibana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kibana
+  template:
+    metadata:
+      labels:
+        app: kibana
+    spec:
+      initContainers:
+      # รอให้ Elasticsearch พร้อมก่อน
+      - name: wait-for-elasticsearch
+        image: curlimages/curl:8.5.0
+        command:
+        - sh
+        - -c
+        - |
+          echo "Waiting for Elasticsearch to be ready..."
+          until curl -sf http://elasticsearch:9200/_cluster/health > /dev/null; do
+            echo "Still waiting for Elasticsearch..."
+            sleep 5
+          done
+          echo "Elasticsearch is ready!"
+        resources:
+          limits:
+            memory: "32Mi"
+            cpu: "100m"
+          requests:
+            memory: "16Mi"
+            cpu: "50m"
+      containers:
+      - name: kibana
+        image: docker.elastic.co/kibana/kibana:8.12.0
+        env:
+        - name: ELASTICSEARCH_HOSTS
+          value: "http://elasticsearch:9200"
+        - name: NODE_OPTIONS
+          value: "--max-old-space-size=512"
+        - name: SERVER_HOST
+          value: "0.0.0.0"
+        - name: ELASTICSEARCH_REQUESTTIMEOUT
+          value: "90000"
+        - name: ELASTICSEARCH_PINGINTERVAL
+          value: "3000"
+        ports:
+        - containerPort: 5601
+          name: http
+          protocol: TCP
+        resources:
+          limits:
+            memory: "768Mi"
+            cpu: "1000m"
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /api/status
+            port: 5601
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 10
+          failureThreshold: 10
+        readinessProbe:
+          httpGet:
+            path: /api/status
+            port: 5601
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 10

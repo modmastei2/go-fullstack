@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: go-fullstack
+data:
+  # Application Environment
+  APP_ENV: "production"
+  SYSTEM_NAME: "backend"
+  INIT_MAX_RETRY: "5"
+
+  # Vault Config
+  VAULT_DEV_MODE: "true"
+  VAULT_HOST: "http://vault"
+  VAULT_PORT: "8200"
+  VAULT_ROLE: "fiber-backend"
+
+  # Redis Config
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+
+  # MinIO Config
+  MINIO_HOST: "minio"
+  MINIO_PORT: "9000"
+  MINIO_BUCKET: "mybucket"
+  MINIO_USE_SSL: "false"
+
+  # JWT Config - ควรเก็บใน secret จริงๆ
+  JWT_SECRET: "your-super-secret-key-change-this-in-production"
+
+  # System Config
+  ALLOW_MULTIPLE_SESSIONS: "false"
+
+  # Docker Config
+  BACKEND_VERSION: "1.0"

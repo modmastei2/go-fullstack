@@ -1,0 +1,73 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vault-init
+  namespace: go-fullstack
+  labels:
+    app: vault-init
+spec:
+  template:
+    metadata:
+      labels:
+        app: vault-init
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+      # รอให้ Vault service พร้อมก่อน
+      - name: wait-for-vault
+        image: curlimages/curl:8.5.0
+        command:
+        - sh
+        - -c
+        - |
+          until curl -sf http://vault:8200/v1/sys/health?standbyok=true > /dev/null; do
+            echo "Waiting for Vault to be ready..."
+            sleep 5
+          done
+          echo "Vault is ready!"
+        resources:
+          limits:
+            memory: "32Mi"
+            cpu: "100m"
+          requests:
+            memory: "16Mi"
+            cpu: "50m"
+      containers:
+      - name: init-secrets
+        image: curlimages/curl:8.5.0
+        env:
+        - name: VAULT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: vault-secret
+              key: root-token
+        command:
+        - sh
+        - -c
+        - |
+          echo "Initializing Vault secrets..."
+          
+          # สร้าง secret สำหรับ fiber-app
+          curl -X POST \
+            -H "X-Vault-Token: $VAULT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "data": {
+                "jwt_secret": "e4dc8542b2a656613680dd0ff5f87b8f79041b4def0f79717469fe17a4d7a6b9",
+                "db_password": "superuser01",
+                "redis_password": "",
+                "minio_root_user": "minioadmin",
+                "minio_root_password": "miniopassword"
+              }
+            }' \
+            http://vault:8200/v1/secret/data/fiber-app
+          
+          echo ""
+          echo "Vault secrets initialized successfully!"
+        resources:
+          limits:
+            memory: "32Mi"
+            cpu: "100m"
+          requests:
+            memory: "16Mi"
+            cpu: "50m"

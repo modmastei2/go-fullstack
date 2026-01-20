@@ -1,0 +1,64 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kibana-init
+  namespace: go-fullstack
+  labels:
+    app: kibana-init
+spec:
+  template:
+    metadata:
+      labels:
+        app: kibana-init
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+      # รอให้ Kibana พร้อมก่อน
+      - name: wait-for-kibana
+        image: curlimages/curl:8.5.0
+        command:
+        - sh
+        - -c
+        - |
+          echo "Waiting for Kibana to be ready..."
+          until curl -sf http://kibana:5601/api/status > /dev/null; do
+            echo "Still waiting for Kibana..."
+            sleep 5
+          done
+          echo "Kibana is ready!"
+        resources:
+          limits:
+            memory: "32Mi"
+            cpu: "100m"
+          requests:
+            memory: "16Mi"
+            cpu: "50m"
+      containers:
+      - name: create-data-view
+        image: curlimages/curl:8.5.0
+        command:
+        - sh
+        - -c
+        - |
+          echo "Creating data view..."
+          
+          curl -X POST "http://kibana:5601/api/data_views/data_view" \
+            -H "kbn-xsrf: true" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "data_view": {
+                "title": "k8s-logs-*",
+                "name": "Kubernetes Logs",
+                "timeFieldName": "@timestamp"
+              }
+            }'
+          
+          echo ""
+          echo "Data view created successfully!"
+        resources:
+          limits:
+            memory: "32Mi"
+            cpu: "100m"
+          requests:
+            memory: "16Mi"
+            cpu: "50m"

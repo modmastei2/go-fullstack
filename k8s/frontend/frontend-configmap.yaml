@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+  namespace: go-fullstack
+data:
+  # ใช้ service name ของ backend ใน cluster
+  BASE_URL: "http://backend:8080"
+  BASE_API: "http://backend:8080/api"
