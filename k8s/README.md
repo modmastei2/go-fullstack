@@ -104,6 +104,7 @@ Start-Job -Name kibana { kubectl port-forward -n go-fullstack svc/kibana 5601:56
 Start-Job -Name minio { kubectl port-forward -n go-fullstack svc/minio 9000:9000 9001:9001 }
 Start-Job -Name vault { kubectl port-forward -n go-fullstack svc/vault 8200:8200 }
 Start-Job -Name elasticsearch { kubectl port-forward -n go-fullstack svc/elasticsearch 9200:9200 }
+Start-Job -Name redis { kubectl port-forward -n go-fullstack svc/redis 6379:6379 }
 
 # ตรวจสอบสถานะ
 Get-Job
