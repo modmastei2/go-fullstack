@@ -108,7 +108,7 @@ func LoadEnv() {
 		TLS_KEY_PATH:       os.Getenv("TLS_KEY_PATH"),
 	}
 
-	log.Println("✓ Environment variables loaded successfully")
+	log.Println("✅ Environment variables loaded successfully")
 	if cfg.Env.APP_ENV != "production" {
 		envJson, _ := json.MarshalIndent(cfg.Env, "", "  ")
 		fmt.Printf("Loaded Environment Config: %s\n", envJson)
@@ -151,7 +151,7 @@ func LoadSecrets(client *api.Client) error {
 		MINIO_ROOT_PASSWORD: minioRootPassword,
 	}
 
-	log.Println("✓ Secrets loaded from Vault successfully")
+	log.Println("✅ Secrets loaded from Vault successfully")
 	if cfg.Env.APP_ENV != "production" {
 		secretJson, _ := json.MarshalIndent(cfg.Secrets, "", "  ")
 		fmt.Printf("Loaded Secrets: %s\n", secretJson)

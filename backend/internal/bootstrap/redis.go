@@ -35,7 +35,7 @@ func InitializeRedis() (*redis.Client, error) {
 		err = verifyRedis(redisClient)
 
 		if err == nil {
-			log.Println("✓ Redis client initialized successfully")
+			log.Println("✅ Redis client initialized successfully")
 			return redisClient, nil
 		}
 
