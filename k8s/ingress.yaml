@@ -1,26 +1,36 @@
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: go-fullstack-ingress
   namespace: go-fullstack
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    # Force HTTPS
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    
+    # Rate Limiting (ป้องกัน DDoS/brute force)
+    nginx.ingress.kubernetes.io/limit-rps: "20"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "5"
+    
+    # Basic CORS
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://go-fullstack.local"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    
+    # Timeouts and limits
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - go-fullstack.local
+    secretName: go-fullstack-tls
   rules:
   - host: go-fullstack.local
     http:
       paths:
-      # Frontend
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: frontend
-            port:
-              number: 80
-      # Backend API
+      # Backend API - must come FIRST for priority
       - path: /api
         pathType: Prefix
         backend:
@@ -28,6 +38,14 @@ spec:
             name: backend
             port:
               number: 8080
+      # Frontend - catch all remaining paths
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend
+            port:
+              number: 80
   # - host: kibana.go-fullstack.local
   #   http:
   #     paths:

@@ -48,9 +48,8 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-        // ถ้าเป็น unlock endpoint และเป็น 401 ให้ throw error ทันที (ไม่ refresh token)
-        if (originalRequest.url === '/auth/unlock' && error.response?.status === 401) {
-            // ไม่ลบ token เพราะอาจเป็นแค่ password ผิด
+        // Skip refresh token logic for login and unlock endpoints
+        if (originalRequest.url === '/auth/login' || originalRequest.url === '/auth/unlock') {
             return Promise.reject(error);
         }
 

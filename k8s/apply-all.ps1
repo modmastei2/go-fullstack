@@ -91,10 +91,26 @@ kubectl apply -f frontend/
 Wait-ForPods -Namespace "go-fullstack" -Label "app=frontend"
 Write-Host "[OK] Frontend deployed" -ForegroundColor Green
 
-# 9. Deploy Ingress (if exists)
+# 9. Create TLS Secret for Ingress
+Write-Host ""
+Write-Host "Step 9: Creating TLS secret for SSL..." -ForegroundColor Blue
+if ((Test-Path "../certs/dev.cert.pem") -and (Test-Path "../certs/dev.cert.key")) {
+    kubectl create secret tls go-fullstack-tls `
+        --cert=../certs/dev.cert.pem `
+        --key=../certs/dev.cert.key `
+        -n go-fullstack `
+        --dry-run=client -o yaml | kubectl apply -f -
+    Write-Host "[OK] TLS secret created" -ForegroundColor Green
+} else {
+    Write-Host "[WARNING] Certificate files not found in ../certs/" -ForegroundColor Yellow
+    Write-Host "          Skipping TLS secret creation." -ForegroundColor Yellow
+    Write-Host "          Ingress may not work without SSL certificates." -ForegroundColor Yellow
+}
+
+# 10. Deploy Ingress
 if (Test-Path "ingress.yaml") {
     Write-Host ""
-    Write-Host "Step 9: Deploying Ingress..." -ForegroundColor Blue
+    Write-Host "Step 10: Deploying Ingress..." -ForegroundColor Blue
     kubectl apply -f ingress.yaml
     Write-Host "[OK] Ingress deployed" -ForegroundColor Green
 }
@@ -110,8 +126,26 @@ kubectl get svc -n go-fullstack
 
 Write-Host ""
 Write-Host "To access the services:" -ForegroundColor Yellow
+Write-Host "  With Ingress (HTTPS): https://go-fullstack.local/ (requires hosts file entry)" -ForegroundColor Cyan
 Write-Host "  Frontend:  kubectl port-forward -n go-fullstack svc/frontend 3000:80"
 Write-Host "  Backend:   kubectl port-forward -n go-fullstack svc/backend 8080:8080"
 Write-Host "  Kibana:    kubectl port-forward -n go-fullstack svc/kibana 5601:5601"
 Write-Host "  MinIO:     kubectl port-forward -n go-fullstack svc/minio 9001:9001"
+Write-Host ""
+Write-Host "SSL/TLS Setup:" -ForegroundColor Yellow
+Write-Host "  1. Add to hosts file: 127.0.0.1 go-fullstack.local"
+Write-Host "  2. Port forward ingress (choose one method):" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "     Foreground (simple):" -ForegroundColor White
+Write-Host "       kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8443:443"
+Write-Host ""
+Write-Host "     Background (recommended):" -ForegroundColor White
+Write-Host "       Start-Job -Name ingress { kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8443:443 }"
+Write-Host "       Get-Job                    # Check status"
+Write-Host "       Stop-Job -Name ingress     # Stop when done"
+Write-Host "       Remove-Job -Name ingress   # Clean up"
+Write-Host ""
+Write-Host "  3. Visit: https://127.0.0.1:8443/" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "For detailed instructions, see START-HERE.md" -ForegroundColor Green
 Write-Host ""
