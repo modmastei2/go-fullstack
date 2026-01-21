@@ -3,6 +3,7 @@ package main
 import (
 	"go-backend/internal/bootstrap"
 	"go-backend/internal/config"
+	"log"
 
 	"github.com/gofiber/fiber/v2"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
@@ -14,10 +15,6 @@ import (
 // @host localhost:8080
 // @BasePath /api/v1
 func main() {
-	// ******* Initialize Config *******
-	config.InitConfig()
-	config.LoadEnv()
-
 	app := fiber.New(fiber.Config{
 		AppName:               "KS_WEALTH_API",
 		ServerHeader:          "",
@@ -31,5 +28,13 @@ func main() {
 
 	bootstrap.InitializeApp(app)
 
-	app.Listen(":8080")
+	cfg := config.GetConfig()
+
+	if cfg.Env.APP_ENV == "production" {
+		log.Fatal(app.ListenTLS(":443", cfg.Env.TLS_CERT_PATH, cfg.Env.TLS_KEY_PATH))
+	} else if cfg.Env.APP_FORCE_HTTPS {
+		log.Fatal(app.ListenTLS(":8080", cfg.Env.TLS_CERT_PATH, cfg.Env.TLS_KEY_PATH))
+	} else {
+		log.Fatal(app.Listen(":8080"))
+	}
 }

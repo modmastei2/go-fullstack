@@ -15,6 +15,10 @@ import (
 )
 
 func InitializeApp(app *fiber.App) {
+	// ******* Initialize Config *******
+	config.InitConfig()
+	config.LoadEnv()
+
 	// ******* Allow HTTP Methods *******
 	app.Use(middleware.HttpMethodMiddleware())
 

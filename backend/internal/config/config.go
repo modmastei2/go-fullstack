@@ -19,9 +19,10 @@ type Config struct {
 }
 
 type EnvironmentConfig struct {
-	APP_ENV        string
-	SYSTEM_NAME    string
-	INIT_MAX_RETRY int
+	APP_ENV         string
+	APP_FORCE_HTTPS bool
+	SYSTEM_NAME     string
+	INIT_MAX_RETRY  int
 	// cors
 	CORS_ALLOW_ORIGINS string
 
@@ -40,6 +41,10 @@ type EnvironmentConfig struct {
 	MINIO_PORT    string
 	MINIO_BUCKET  string
 	MINIO_USE_SSL bool
+
+	// cert
+	TLS_CERT_PATH string
+	TLS_KEY_PATH  string
 }
 
 type SecretsConfig struct {
@@ -83,6 +88,7 @@ func LoadEnv() {
 
 	cfg.Env = EnvironmentConfig{
 		APP_ENV:            APP_ENV,
+		APP_FORCE_HTTPS:    os.Getenv("APP_FORCE_HTTPS") == "true",
 		SYSTEM_NAME:        os.Getenv("SYSTEM_NAME"),
 		INIT_MAX_RETRY:     shared.StringToIntWithDefault(os.Getenv("INIT_MAX_RETRY"), 5),
 		CORS_ALLOW_ORIGINS: os.Getenv("CORS_ALLOW_ORIGINS"),
@@ -98,6 +104,8 @@ func LoadEnv() {
 		MINIO_PORT:         os.Getenv("MINIO_PORT"),
 		MINIO_BUCKET:       os.Getenv("MINIO_BUCKET"),
 		MINIO_USE_SSL:      os.Getenv("MINIO_USE_SSL") == "true",
+		TLS_CERT_PATH:      os.Getenv("TLS_CERT_PATH"),
+		TLS_KEY_PATH:       os.Getenv("TLS_KEY_PATH"),
 	}
 
 	log.Println("✓ Environment variables loaded successfully")

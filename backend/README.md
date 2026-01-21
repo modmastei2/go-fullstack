@@ -40,3 +40,13 @@ swag init -g cmd/api/main.go
 
 ดู API Spec
 http://127.0.0.1:8080/redoc
+
+Gen Dev Cert
+```bash
+choco install mkcert
+
+mkcert -install
+
+mkcert -cert-file dev.cert.pem -key-file dev.cert.key go-fullstack.local localhost 127.0.0.1
+
+```
