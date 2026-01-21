@@ -41,10 +41,6 @@ type EnvironmentConfig struct {
 	MINIO_PORT    string
 	MINIO_BUCKET  string
 	MINIO_USE_SSL bool
-
-	// cert
-	TLS_CERT_PATH string
-	TLS_KEY_PATH  string
 }
 
 type SecretsConfig struct {
@@ -104,8 +100,6 @@ func LoadEnv() {
 		MINIO_PORT:         os.Getenv("MINIO_PORT"),
 		MINIO_BUCKET:       os.Getenv("MINIO_BUCKET"),
 		MINIO_USE_SSL:      os.Getenv("MINIO_USE_SSL") == "true",
-		TLS_CERT_PATH:      os.Getenv("TLS_CERT_PATH"),
-		TLS_KEY_PATH:       os.Getenv("TLS_KEY_PATH"),
 	}
 
 	log.Println("✅ Environment variables loaded successfully")

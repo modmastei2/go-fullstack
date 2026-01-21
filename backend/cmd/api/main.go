@@ -2,7 +2,6 @@ package main
 
 import (
 	"go-backend/internal/bootstrap"
-	"go-backend/internal/config"
 	"log"
 
 	"github.com/gofiber/fiber/v2"
@@ -28,13 +27,5 @@ func main() {
 
 	bootstrap.InitializeApp(app)
 
-	cfg := config.GetConfig()
-
-	if cfg.Env.APP_ENV == "production" {
-		log.Fatal(app.ListenTLS(":443", cfg.Env.TLS_CERT_PATH, cfg.Env.TLS_KEY_PATH))
-	} else if cfg.Env.APP_FORCE_HTTPS {
-		log.Fatal(app.ListenTLS(":8080", cfg.Env.TLS_CERT_PATH, cfg.Env.TLS_KEY_PATH))
-	} else {
-		log.Fatal(app.Listen(":8080"))
-	}
+	log.Fatal(app.Listen(":8080"))
 }
