@@ -1,6 +1,6 @@
 # Kubernetes Deployment - Go Fullstack Application
 
-> **🎯 ต้องการเริ่มต้นด่วน?** → อ่าน **[START-HERE.md](START-HERE.md)** (5 นาที)
+> **🎯 ต้องการเริ่มต้นด่วน?** → อ่าน **[docs/START-HERE.md](docs/START-HERE.md)** (5 นาที)
 
 Deploy Go Backend + React Frontend พร้อม Infrastructure Services บน Kubernetes with SSL/TLS Support
 
@@ -23,10 +23,10 @@ Deploy Go Backend + React Frontend พร้อม Infrastructure Services บ�
 
 | ไฟล์ | จุดประสงค์ | เมื่อไหร่ใช้ |
 |------|-----------|------------|
-| **[START-HERE.md](START-HERE.md)** | 🚀 เริ่มต้นใช้งานด่วน 5 นาที | อ่านไฟล์นี้ก่อนเสมอ! |
-| **[DEPLOYMENT-CHECKLIST.md](DEPLOYMENT-CHECKLIST.md)** | ✅ Checklist ครบถ้วนทุกขั้นตอน | Deploy production / ต้องการความละเอียด |
-| **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** | 🔧 แก้ปัญหาที่พบบ่อย | เมื่อติดปัญหา |
-| **[ARCHITECTURE.md](ARCHITECTURE.md)** | 📊 Architecture diagrams | เมื่อต้องการเข้าใจโครงสร้าง |
+| **[docs/START-HERE.md](docs/START-HERE.md)** | 🚀 เริ่มต้นใช้งานด่วน 5 นาที | อ่านไฟล์นี้ก่อนเสมอ! |
+| **[docs/DEPLOYMENT-CHECKLIST.md](docs/DEPLOYMENT-CHECKLIST.md)** | ✅ Checklist ครบถ้วนทุกขั้นตอน | Deploy production / ต้องการความละเอียด |
+| **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** | 🔧 แก้ปัญหาที่พบบ่อย | เมื่อติดปัญหา |
+| **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** | 📊 Architecture diagrams | เมื่อต้องการเข้าใจโครงสร้าง |
 | **README.md** (นี่) | 📚 คู่มือละเอียดทั้งหมด | Reference ทั่วไป |
 
 ---
@@ -195,18 +195,30 @@ pkill -f "kubectl port-forward"
 
 ```
 k8s/
-├── namespace.yaml              # Namespace definition
-├── apply-all.ps1/sh           # Deploy all services
-├── build-and-load.ps1/sh      # Build and load images
-├── delete-all.ps1/sh          # Delete all resources
-├── troubleshoot.ps1/sh        # Diagnostic tool
-├── redis/                      # Redis manifests
-├── minio/                      # MinIO manifests
-├── vault/                      # Vault + init job
-├── elk/                        # Elasticsearch, Kibana, Fluent-bit
-│   └── MEMORY-CONFIG.md       # Memory optimization guide
-├── backend/                    # Backend deployment
-└── frontend/                   # Frontend deployment
+├── README.md                   # คู่มือหลัก
+├── manifests/                 # Core Kubernetes manifests
+│   ├── namespace.yaml
+│   ├── ingress.yaml
+│   ├── network-policy.yaml
+│   └── tls-secret.yaml
+├── scripts/                  # Automation scripts
+│   ├── apply-all.ps1/sh      # Deploy all services
+│   ├── build-and-load.ps1/sh # Build and load images
+│   ├── delete-all.ps1/sh     # Delete all resources
+│   └── troubleshoot.ps1/sh   # Diagnostic tool
+├── docs/                     # Documentation
+│   ├── START-HERE.md
+│   ├── ARCHITECTURE.md
+│   ├── DEPLOYMENT-CHECKLIST.md
+│   ├── SECURITY.md
+│   └── TROUBLESHOOTING.md
+├── redis/                    # Redis manifests
+├── minio/                    # MinIO manifests
+├── vault/                    # Vault + init job
+├── elk/                      # Elasticsearch, Kibana, Fluent-bit
+│   └── MEMORY-CONFIG.md      # Memory optimization guide
+├── backend/                  # Backend deployment
+└── frontend/                 # Frontend deployment
 ```
 
 ---
@@ -707,7 +719,7 @@ pkill -f "kubectl port-forward"
 
 | Issue | Solution | Command |
 |-------|----------|---------|
-| ไม่รู้จะเริ่มจากไหน | รัน troubleshoot script | `.\troubleshoot.ps1` |
+| ไม่รู้จะเริ่มจากไหน | รัน troubleshoot script | `.\scripts\troubleshoot.ps1` |
 | ImagePullBackOff | Build และ load images | `.\build-and-load.ps1` |
 | Backend restart loop | Check health path, vault secrets, memory | `.\troubleshoot.ps1` |
 | Elasticsearch OOM | Use lite version or increase memory | See `elk/MEMORY-CONFIG.md` |

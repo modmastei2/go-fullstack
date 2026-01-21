@@ -34,7 +34,7 @@ kubectl get pods -n ingress-nginx
 ### ขั้นตอนที่ 2: Deploy Application
 ```powershell
 cd k8s
-.\apply-all.ps1
+.\scripts\apply-all.ps1
 ```
 
 ### ขั้นตอนที่ 3: เพิ่ม hosts file
