@@ -2,7 +2,6 @@ import { Outlet } from 'react-router-dom';
 import { useAuth } from '../../../../shared/hooks/useAuth';
 import { applyTheme } from '../../../../shared/handlers/theme.handler';
 
-
 export default function PrivateLayout() {
     const { user, logout } = useAuth();
 
@@ -21,29 +20,30 @@ export default function PrivateLayout() {
                         <div className="flex items-center">
                             <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200">My Application</h1>
                         </div>
-                        
+
                         <div className="flex items-center space-x-4">
                             {/* toggle theme dark / light button */}
                             <div className="space-x-2 dark:text-gray-200">
-                                <span className="cursor-pointer" onClick={() => applyTheme('light')}>Light /</span>
-                                <span className="cursor-pointer" onClick={() => applyTheme('dark')}>Dark /</span>
-                                <span className="cursor-pointer" onClick={() => applyTheme('system')}>System</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                                    <span className="text-white text-sm font-semibold">
-                                        {user?.username?.charAt(0).toUpperCase()}
-                                    </span>
-                                </div>
-                                <span className="text-gray-700 dark:text-gray-200 font-medium hidden sm:block">
-                                    {user?.username}
+                                <span className="cursor-pointer" onClick={() => applyTheme('light')}>
+                                    Light /
+                                </span>
+                                <span className="cursor-pointer" onClick={() => applyTheme('dark')}>
+                                    Dark /
+                                </span>
+                                <span className="cursor-pointer" onClick={() => applyTheme('system')}>
+                                    System
                                 </span>
                             </div>
-                            
+                            <div className="flex items-center space-x-2">
+                                <div className="w-8 h-8 bg-linear-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                    <span className="text-white text-sm font-semibold">{user?.username?.charAt(0).toUpperCase()}</span>
+                                </div>
+                                <span className="text-gray-700 dark:text-gray-200 font-medium hidden sm:block">{user?.username}</span>
+                            </div>
+
                             <button
                                 onClick={handleLogout}
-                                className="px-4 py-2 bg-red-500 bg-red-500/75 text-white rounded-lg hover:bg-red-600 transition font-medium text-sm cursor-pointer"
-                            >
+                                className="px-4 py-2 bg-red-500 dark:bg-red-500/75 text-white rounded-lg hover:bg-red-600 transition font-medium text-sm cursor-pointer">
                                 Logout
                             </button>
                         </div>
@@ -70,4 +70,4 @@ export default function PrivateLayout() {
             </footer>
         </div>
     );
-};
+}
