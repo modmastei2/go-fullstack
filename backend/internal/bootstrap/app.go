@@ -12,13 +12,21 @@ import (
 	"go-backend/internal/shared"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 func InitializeApp(app *fiber.App) {
 	// ******* Initialize Config *******
 	config.InitConfig()
 	config.LoadEnv()
+
+	// ******* Allow HTTP Methods *******
+	app.Use(middleware.HttpMethodMiddleware())
+
+	// ******* Security Header Protocol Middleware *******
+	app.Use(middleware.SecurityHeaderMiddleware())
+
+	// ******* CORS Middleware ******* (load after config)
+	app.Use(middleware.CorsMiddleware())
 
 	cfg := config.GetConfig()
 
@@ -56,22 +64,6 @@ func InitializeApp(app *fiber.App) {
 
 	// ******* Logging Middleware *******
 	app.Use(middleware.LoggerMiddleware())
-
-	// ******* CORS Middleware *******
-	app.Use(cors.New(cors.Config{
-		AllowOrigins: "http://localhost:3000, http://localhost:5173",
-		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
-		AllowMethods: "GET, POST",
-	}))
-
-	// ******* Security Header Protocol *******
-	app.Use(func(c *fiber.Ctx) error {
-		c.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-		c.Set("Content-Security-Policy", "default-src 'self'")
-		c.Set("X-Content-Type-Options", "nosniff")
-		c.Set("X-Frame-Options", "DENY")
-		return c.Next()
-	})
 
 	// ******* Create API routes group *******
 	api := app.Group("/api/v1")

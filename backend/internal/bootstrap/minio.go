@@ -36,7 +36,7 @@ func InitializeMinio() (*minio.Client, error) {
 		_, err = minioClient.BucketExists(ctx, cfg.Env.MINIO_BUCKET)
 
 		if err == nil {
-			log.Println("✓ MinIO client initialized successfully")
+			log.Println("✅ MinIO client initialized successfully")
 			return minioClient, nil
 		}
 

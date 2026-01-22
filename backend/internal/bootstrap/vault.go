@@ -52,7 +52,7 @@ func InitializeVault() (*api.Client, error) {
 		err = verifyVault(client)
 
 		if err == nil {
-			log.Println("✓ Vault client initialized successfully")
+			log.Println("✅ Vault client initialized successfully")
 			return client, nil
 		}
 

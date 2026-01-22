@@ -1,11 +1,16 @@
 # Kubernetes Deployment - Go Fullstack Application
 
-Deploy Go Backend + React Frontend พร้อม Infrastructure Services บน Kubernetes
+> **🎯 ต้องการเริ่มต้นด่วน?** → อ่าน **[docs/START-HERE.md](docs/START-HERE.md)** (5 นาที)
+
+Deploy Go Backend + React Frontend พร้อม Infrastructure Services บน Kubernetes with SSL/TLS Support
+
+---
 
 ## 📋 Services
 
 - **Backend** - Go Fiber API (Port 8080)
-- **Frontend** - React + Nginx (Port 80)
+- **Frontend** - React + Nginx (Port 80)  
+- **Ingress** - NGINX Ingress Controller with SSL/TLS
 - **Redis** - Cache & Session Storage
 - **MinIO** - Object Storage
 - **Vault** - Secrets Management
@@ -14,40 +19,52 @@ Deploy Go Backend + React Frontend พร้อม Infrastructure Services บ�
 
 ---
 
-## 🚀 Quick Start
+## 📖 Documentation
+
+| ไฟล์ | จุดประสงค์ | เมื่อไหร่ใช้ |
+|------|-----------|------------|
+| **[docs/START-HERE.md](docs/START-HERE.md)** | 🚀 เริ่มต้นใช้งานด่วน 5 นาที | อ่านไฟล์นี้ก่อนเสมอ! |
+| **[docs/DEPLOYMENT-CHECKLIST.md](docs/DEPLOYMENT-CHECKLIST.md)** | ✅ Checklist ครบถ้วนทุกขั้นตอน | Deploy production / ต้องการความละเอียด |
+| **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** | 🔧 แก้ปัญหาที่พบบ่อย | เมื่อติดปัญหา |
+| **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** | 📊 Architecture diagrams | เมื่อต้องการเข้าใจโครงสร้าง |
+| **README.md** (นี่) | 📚 คู่มือละเอียดทั้งหมด | Reference ทั่วไป |
+
+---
+
+## 🚀 Quick Start (Summary)
 
 ### 1. Prerequisites
 
 - Kubernetes cluster (Docker Desktop / Minikube / K3s)
 - kubectl configured
 - Docker (สำหรับ build images)
+- NGINX Ingress Controller installed
+- SSL certificates (available in `../certs/`)
 
-### 2. Build Images (Local Cluster)
+### 2. Install NGINX Ingress Controller (if not installed)
 
-```bash
-# PowerShell
+```powershell
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.0/deploy/static/provider/cloud/deploy.yaml
+```
+
+### 3. Build & Deploy
+
+```powershell
+# Build images
 .\build-and-load.ps1
 
-# Bash
-./build-and-load.sh
-```
-
-Script จะ:
-- Detect cluster type อัตโนมัติ
-- Build backend และ frontend images
-- Load images เข้า cluster
-
-### 3. Deploy All Services
-
-```bash
-# PowerShell
+# Deploy everything
 .\apply-all.ps1
 
-# Bash
-./apply-all.sh
-```
+# Configure hosts file (C:\Windows\System32\drivers\etc\hosts)
+127.0.0.1 go-fullstack.local
 
-รอประมาณ 2-3 นาที จนกว่า pods จะ Ready
+# Port forward ingress
+kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 443:443
+
+# Access
+# https://go-fullstack.local/
+```
 
 ### 4. Check Status
 
@@ -68,16 +85,41 @@ minio-xxx                        1/1     Running     0          3m
 fluent-bit-xxx                   1/1     Running     0          2m
 ```
 
-### 5. Access Services
+### 5. Setup SSL/TLS Access
+
+#### Configure Hosts File:
+Add to your hosts file:
+- **Windows:** `C:\Windows\System32\drivers\etc\hosts`
+- **Linux/Mac:** `/etc/hosts`
+
+```
+127.0.0.1 go-fullstack.local
+```
+
+#### Port Forward Ingress Controller:
+```powershell
+kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 443:443
+```
+
+#### Access via HTTPS:
+```
+https://go-fullstack.local/
+```
+
+**Note:** Accept the self-signed certificate warning for development.
+
+📖 **For complete SSL setup instructions, see [SSL-SETUP.md](SSL-SETUP.md)**
+
+### 6. Access Services (Alternative: Direct Port Forwarding)
 
 #### Option 1: Foreground (รัน terminal แยก)
 
 ```bash
-# Terminal 1 - Backend
-kubectl port-forward -n go-fullstack svc/backend 8080:8080
+# Terminal 1 - Frontend via Ingress (HTTPS)
+kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 443:443
 
-# Terminal 2 - Frontend
-kubectl port-forward -n go-fullstack svc/frontend 3000:80
+# Terminal 2 - Backend (Direct)
+kubectl port-forward -n go-fullstack svc/backend 8080:8080
 
 # Terminal 3 - Kibana
 kubectl port-forward -n go-fullstack svc/kibana 5601:5601
@@ -153,18 +195,30 @@ pkill -f "kubectl port-forward"
 
 ```
 k8s/
-├── namespace.yaml              # Namespace definition
-├── apply-all.ps1/sh           # Deploy all services
-├── build-and-load.ps1/sh      # Build and load images
-├── delete-all.ps1/sh          # Delete all resources
-├── troubleshoot.ps1/sh        # Diagnostic tool
-├── redis/                      # Redis manifests
-├── minio/                      # MinIO manifests
-├── vault/                      # Vault + init job
-├── elk/                        # Elasticsearch, Kibana, Fluent-bit
-│   └── MEMORY-CONFIG.md       # Memory optimization guide
-├── backend/                    # Backend deployment
-└── frontend/                   # Frontend deployment
+├── README.md                   # คู่มือหลัก
+├── manifests/                 # Core Kubernetes manifests
+│   ├── namespace.yaml
+│   ├── ingress.yaml
+│   ├── network-policy.yaml
+│   └── tls-secret.yaml
+├── scripts/                  # Automation scripts
+│   ├── apply-all.ps1/sh      # Deploy all services
+│   ├── build-and-load.ps1/sh # Build and load images
+│   ├── delete-all.ps1/sh     # Delete all resources
+│   └── troubleshoot.ps1/sh   # Diagnostic tool
+├── docs/                     # Documentation
+│   ├── START-HERE.md
+│   ├── ARCHITECTURE.md
+│   ├── DEPLOYMENT-CHECKLIST.md
+│   ├── SECURITY.md
+│   └── TROUBLESHOOTING.md
+├── redis/                    # Redis manifests
+├── minio/                    # MinIO manifests
+├── vault/                    # Vault + init job
+├── elk/                      # Elasticsearch, Kibana, Fluent-bit
+│   └── MEMORY-CONFIG.md      # Memory optimization guide
+├── backend/                  # Backend deployment
+└── frontend/                 # Frontend deployment
 ```
 
 ---
@@ -609,9 +663,25 @@ kubectl rollout restart deployment -n go-fullstack
 
 ### Port Forward Commands
 
+#### Ingress Controller (SSL/TLS Access)
+
+```powershell
+# PowerShell - Foreground (ง่ายที่สุด)
+kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8443:443
+# Access: https://127.0.0.1:8443/
+
+# PowerShell - Background
+Start-Job -Name ingress { kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8443:443 }
+
+# Bash/Linux/Mac - Background
+kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8443:443 &
+```
+
+#### Application Services
+
 ```bash
 # PowerShell - Background mode (ทุก service)
-Start-Job -Name backend { kubectl port-forward -n go-fullstack svc/backend 8080:8080 }
+Start-Job -Name ingress { kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8443:443 }
 Start-Job -Name frontend { kubectl port-forward -n go-fullstack svc/frontend 3000:80 }
 Start-Job -Name kibana { kubectl port-forward -n go-fullstack svc/kibana 5601:5601 }
 Start-Job -Name minio { kubectl port-forward -n go-fullstack svc/minio 9000:9000 9001:9001 }
@@ -631,6 +701,10 @@ kubectl port-forward -n go-fullstack svc/elasticsearch 9200:9200 &
 Get-Job | Stop-Job
 Get-Job | Remove-Job
 
+# หรือเฉพาะ ingress
+Stop-Job -Name ingress
+Remove-Job -Name ingress
+
 # Bash
 killall kubectl
 # หรือ
@@ -645,7 +719,7 @@ pkill -f "kubectl port-forward"
 
 | Issue | Solution | Command |
 |-------|----------|---------|
-| ไม่รู้จะเริ่มจากไหน | รัน troubleshoot script | `.\troubleshoot.ps1` |
+| ไม่รู้จะเริ่มจากไหน | รัน troubleshoot script | `.\scripts\troubleshoot.ps1` |
 | ImagePullBackOff | Build และ load images | `.\build-and-load.ps1` |
 | Backend restart loop | Check health path, vault secrets, memory | `.\troubleshoot.ps1` |
 | Elasticsearch OOM | Use lite version or increase memory | See `elk/MEMORY-CONFIG.md` |

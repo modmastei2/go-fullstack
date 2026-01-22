@@ -2,6 +2,7 @@ package main
 
 import (
 	"go-backend/internal/bootstrap"
+	"log"
 
 	"github.com/gofiber/fiber/v2"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
@@ -14,7 +15,9 @@ import (
 // @BasePath /api/v1
 func main() {
 	app := fiber.New(fiber.Config{
-		AppName: "KS_WEALTH_API",
+		AppName:               "KS_WEALTH_API",
+		ServerHeader:          "",
+		DisableStartupMessage: true,
 	})
 
 	// ******* Setup Swagger and Static File Serving *******
@@ -24,5 +27,5 @@ func main() {
 
 	bootstrap.InitializeApp(app)
 
-	app.Listen(":8080")
+	log.Fatal(app.Listen(":8080"))
 }

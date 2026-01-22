@@ -13,3 +13,8 @@ services:
     mem_limit: 256M
     mem_reservation: 128M
     restart: unless-stopped
+    networks:
+      - go-fullstack-network
+
+networks:
+  go-fullstack-network:

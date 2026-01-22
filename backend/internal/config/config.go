@@ -19,9 +19,13 @@ type Config struct {
 }
 
 type EnvironmentConfig struct {
-	APP_ENV        string
-	SYSTEM_NAME    string
-	INIT_MAX_RETRY int
+	APP_ENV         string
+	APP_FORCE_HTTPS bool
+	SYSTEM_NAME     string
+	INIT_MAX_RETRY  int
+	// cors
+	CORS_ALLOW_ORIGINS string
+
 	// vault
 	VAULT_DEV_MODE bool
 	VAULT_HOST     string
@@ -79,24 +83,26 @@ func LoadEnv() {
 	}
 
 	cfg.Env = EnvironmentConfig{
-		APP_ENV:        APP_ENV,
-		SYSTEM_NAME:    os.Getenv("SYSTEM_NAME"),
-		INIT_MAX_RETRY: shared.StringToIntWithDefault(os.Getenv("INIT_MAX_RETRY"), 5),
-		VAULT_DEV_MODE: os.Getenv("VAULT_DEV_MODE") == "true",
-		VAULT_HOST:     os.Getenv("VAULT_HOST"),
-		VAULT_PORT:     os.Getenv("VAULT_PORT"),
-		VAULT_TOKEN:    os.Getenv("VAULT_TOKEN"),
-		VAULT_ROLE:     os.Getenv("VAULT_ROLE"),
-		REDIS_HOST:     os.Getenv("REDIS_HOST"),
-		REDIS_PORT:     os.Getenv("REDIS_PORT"),
-		REDIS_DB:       os.Getenv("REDIS_DB"),
-		MINIO_HOST:     os.Getenv("MINIO_HOST"),
-		MINIO_PORT:     os.Getenv("MINIO_PORT"),
-		MINIO_BUCKET:   os.Getenv("MINIO_BUCKET"),
-		MINIO_USE_SSL:  os.Getenv("MINIO_USE_SSL") == "true",
+		APP_ENV:            APP_ENV,
+		APP_FORCE_HTTPS:    os.Getenv("APP_FORCE_HTTPS") == "true",
+		SYSTEM_NAME:        os.Getenv("SYSTEM_NAME"),
+		INIT_MAX_RETRY:     shared.StringToIntWithDefault(os.Getenv("INIT_MAX_RETRY"), 5),
+		CORS_ALLOW_ORIGINS: os.Getenv("CORS_ALLOW_ORIGINS"),
+		VAULT_DEV_MODE:     os.Getenv("VAULT_DEV_MODE") == "true",
+		VAULT_HOST:         os.Getenv("VAULT_HOST"),
+		VAULT_PORT:         os.Getenv("VAULT_PORT"),
+		VAULT_TOKEN:        os.Getenv("VAULT_TOKEN"),
+		VAULT_ROLE:         os.Getenv("VAULT_ROLE"),
+		REDIS_HOST:         os.Getenv("REDIS_HOST"),
+		REDIS_PORT:         os.Getenv("REDIS_PORT"),
+		REDIS_DB:           os.Getenv("REDIS_DB"),
+		MINIO_HOST:         os.Getenv("MINIO_HOST"),
+		MINIO_PORT:         os.Getenv("MINIO_PORT"),
+		MINIO_BUCKET:       os.Getenv("MINIO_BUCKET"),
+		MINIO_USE_SSL:      os.Getenv("MINIO_USE_SSL") == "true",
 	}
 
-	log.Println("✓ Environment variables loaded successfully")
+	log.Println("✅ Environment variables loaded successfully")
 	if cfg.Env.APP_ENV != "production" {
 		envJson, _ := json.MarshalIndent(cfg.Env, "", "  ")
 		fmt.Printf("Loaded Environment Config: %s\n", envJson)
@@ -139,7 +145,7 @@ func LoadSecrets(client *api.Client) error {
 		MINIO_ROOT_PASSWORD: minioRootPassword,
 	}
 
-	log.Println("✓ Secrets loaded from Vault successfully")
+	log.Println("✅ Secrets loaded from Vault successfully")
 	if cfg.Env.APP_ENV != "production" {
 		secretJson, _ := json.MarshalIndent(cfg.Secrets, "", "  ")
 		fmt.Printf("Loaded Secrets: %s\n", secretJson)
