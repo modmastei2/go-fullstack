@@ -14,6 +14,7 @@ import PublicGuard from './shared/guards/PublicGuard';
 import NotFound from './modules/core/pages/NotFound';
 import Unauthorized from './modules/core/pages/Unauthorized';
 import { AuthProvider } from './shared/providers/AuthProvider';
+import { initTheme } from './shared/handlers/theme.handler';
 
 const router = createBrowserRouter([
     {
@@ -64,6 +65,8 @@ const router = createBrowserRouter([
         element: <NotFound></NotFound>,
     },
 ]);
+
+initTheme();
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
