@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom';
-import { useAuth } from '../../../../shared/hooks/useAuth';
+import { useAuth } from '../../../../shared/hooks/auth/useAuth';
 import { applyTheme } from '../../../../shared/handlers/theme.handler';
 
 export default function PrivateLayout() {

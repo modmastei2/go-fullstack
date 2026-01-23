@@ -1,8 +1,8 @@
 import { type ReactNode, useState, useEffect, useCallback } from 'react';
-import { AuthContext, type User, type AuthContextType } from '../context/AuthContext';
-import api, { isAxiosError } from '../handlers/api.handler';
-import useIdleDetector from '../hooks/useIdleDetector';
-import LockScreen from '../../modules/post-login/core/components/LockScreen';
+import { AuthContext, type User, type AuthContextType } from './AuthContext';
+import api, { isAxiosError } from '../../handlers/api.handler';
+import useIdleDetector from '../useIdleDetector';
+import LockScreen from '../../../modules/post-login/core/components/LockScreen';
 
 interface AuthProviderProps {
     children: ReactNode;
@@ -16,7 +16,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
     useIdleDetector({
-        idleTimeout: 1 * 60 * 1000, // 15 นาที
+        idleTimeout: 15 * 60 * 1000, // 15 นาที
         onIdle: async () => {
             if (user && !isLocked) {
                 console.log('User is idle. Locking session...');

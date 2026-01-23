@@ -4,7 +4,8 @@ import './index.css';
 
 import { initTheme } from './shared/handlers/theme.handler';
 import App from './App';
-import { AuthProvider } from './shared/providers/AuthProvider';
+import { AuthProvider } from './shared/hooks/auth/AuthProvider';
+import { LoaderProvider } from './shared/hooks/loader/LoaderProvider';
 // import store from './shared/redux/store';
 // import { Provider } from 'react-redux';
 
@@ -12,10 +13,10 @@ initTheme();
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
-        {/* <Provider store={store}> */}
+        <LoaderProvider>
             <AuthProvider>
                 <App />
             </AuthProvider>
-        {/* </Provider> */}
+        </LoaderProvider>
     </StrictMode>,
 );

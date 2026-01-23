@@ -1,7 +1,17 @@
-import { useAuth } from "../../../../shared/hooks/useAuth";
+import { useAuth } from "../../../../shared/hooks/auth/useAuth";
+import { useLoader } from "../../../../shared/hooks/loader/useLoader";
 
 export default function LandingPage() {
     const { user } = useAuth();
+    const { showLoading, hideLoading } = useLoader();
+
+    function testHandler() {
+        showLoading();
+        
+        setTimeout(() => {
+            hideLoading();
+        }, 2000);
+    }
 
     return (
         <div className="space-y-6">
@@ -59,7 +69,7 @@ export default function LandingPage() {
 
             {/* Content Card */}
             <div className="bg-white dark:bg-slate-900 rounded-lg shadow-md p-6">
-                <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Dashboard</h3>
+                <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4" onClick={testHandler}>Dashboard</h3>
                 <div className="space-y-4">
                     <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                         <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">User Information</h4>
