@@ -12,7 +12,7 @@ export default function PrivateLayout() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-800">
+        <div className="min-h-screen overflow-hidden bg-gray-50 dark:bg-gray-800">
             {/* Navigation Bar */}
             <nav className="bg-white dark:bg-gray-900 shadow-sm sticky top-0 z-40">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -52,7 +52,7 @@ export default function PrivateLayout() {
             </nav>
 
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-[calc(100vh-118px)]">
                 <Outlet />
             </main>
 

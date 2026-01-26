@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useState, type ReactNode } from 'react';
 import { LoaderContext, type LoaderContextType } from './LoaderContext';
-import LoaderComponent from '../../components/loader.component';
+import Loader from '../../components/Loader/Loader';
 
 interface LoaderProviderProps {
     children: ReactNode;
@@ -30,7 +30,7 @@ export const LoaderProvider: React.FC<LoaderProviderProps> = ({ children }) => {
         <>
             <div className="relative min-h-screen">
                 <LoaderContext.Provider value={value}>{children}</LoaderContext.Provider>
-                { isLoading && <LoaderComponent />}
+                { isLoading && <Loader />}
             </div>
         </>
     );

@@ -10,6 +10,7 @@ import Login from './modules/pre-login/login/pages/Login';
 import Register from './modules/pre-login/login/pages/Register';
 import PublicGuard from './shared/guards/PublicGuard';
 import RequireAuth from './shared/guards/RequireAuth';
+import DevComponents from './modules/post-login/dev/pages/dev.components';
 
 const router = createBrowserRouter([
     {
@@ -23,6 +24,10 @@ const router = createBrowserRouter([
                         index: true,
                         element: <LandingPage />,
                     },
+                    {
+                        path: 'dev',
+                        element: <DevComponents />,
+                    }
                 ],
             },
         ],

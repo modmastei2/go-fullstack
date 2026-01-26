@@ -1,6 +1,6 @@
-import './loader.component.css';
+import './Loader.css';
 
-export default function LoaderComponent() {
+export default function Loader() {
     return (
         <>
             {/* create loader spinner & overlay with animation */}
