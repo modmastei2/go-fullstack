@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "tailwindcss-animated";
+@config "../tailwind.config.ts";
 
 body {
     margin: 0;

@@ -1,0 +1,15 @@
+/* สีเลขบรรทัด Light */
+.line-numbers .line-numbers-rows {
+    border-right: 1px solid #e2e8f0;
+}
+.line-numbers-rows > span:before {
+    color: #94a3b8;
+}
+
+/* สีเลขบรรทัด Dark */
+.dark .line-numbers .line-numbers-rows {
+    border-right: 1px solid #1e293b;
+}
+.dark .line-numbers-rows > span:before {
+    color: #475569;
+}

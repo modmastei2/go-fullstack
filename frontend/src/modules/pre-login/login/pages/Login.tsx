@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../../../shared/hooks/useAuth';
+import { useAuth } from '../../../../shared/hooks/auth/useAuth';
 import { isAxiosError } from '../../../../shared/handlers/api.handler';
 
 export default function Login() {

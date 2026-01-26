@@ -1,16 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useMemo } from 'react';
-import { ViewRoute } from '../constants/routes';
-import { openPopup } from '../handlers/navigator.handler';
+import { ViewRoute } from '../../constants/routes';
+import { openPopup } from '../../handlers/navigator.handler';
 
-type ChildProps = {
+type ViewProps = {
     id: string;
     viewKey: string;
     cell: any;
     disabled?: boolean;
 };
 
-export default function ViewComponent({ id, viewKey, cell, disabled }: ChildProps) {
+export default function View({ id, viewKey, cell, disabled }: ViewProps) {
     const text = cell.text;
 
     const { link, linkOptions } = useMemo(() => {
