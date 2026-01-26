@@ -133,24 +133,39 @@ func (s *AuthService) LoginHandler(c *fiber.Ctx) error {
 	}
 	s.redisClient.Expire(context.Background(), sessionKey, 24*7*time.Hour)
 
+	// Set access token as HTTP-Only cookie (15 minutes)
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    accessToken,
+		Expires:  time.Now().Add(15 * time.Minute),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "Lax",
+		Path:     "/",
+	})
+
+	// Set refresh token as HTTP-Only cookie (7 days)
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		Expires:  time.Now().Add(7 * 24 * time.Hour),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "Lax",
+		Path:     "/",
+	})
+
 	return c.JSON(TokenResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		User:         fiber.Map{"id": user.UserId, "username": user.Username},
+		Message: "Login successful",
+		User:    fiber.Map{"id": user.UserId, "username": user.Username},
 	})
 }
 
 func (s *AuthService) RefreshTokenHandler(c *fiber.Ctx) error {
-	var req RefreshTokenRequest
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(shared.ErrorResponse{
-			ErrorCode: "INVALID_REQUEST",
-			Message:   "Invalid request body",
-		})
-	}
+	refreshTokenFromCookie := c.Cookies("refresh_token")
 
-	if req.RefreshToken == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(shared.ErrorResponse{
+	if refreshTokenFromCookie == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(shared.ErrorResponse{
 			ErrorCode: "MISSING_REFRESH_TOKEN",
 			Message:   "Refresh token is required",
 		})
@@ -159,7 +174,7 @@ func (s *AuthService) RefreshTokenHandler(c *fiber.Ctx) error {
 	cfg := config.GetConfig()
 	JWT_SECRET := []byte(cfg.Secrets.JWT_SECRET)
 	claims := &shared.Claims{}
-	token, err := jwt.ParseWithClaims(req.RefreshToken, claims, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(refreshTokenFromCookie, claims, func(token *jwt.Token) (interface{}, error) {
 		return JWT_SECRET, nil
 	})
 
@@ -172,7 +187,7 @@ func (s *AuthService) RefreshTokenHandler(c *fiber.Ctx) error {
 
 	key := fmt.Sprintf("refresh_token:%s:%s", claims.UserID, claims.ID)
 	storedToken, err := s.redisClient.Get(context.Background(), key).Result()
-	if err != nil || storedToken != req.RefreshToken {
+	if err != nil || storedToken != refreshTokenFromCookie {
 		return c.Status(fiber.StatusUnauthorized).JSON(shared.ErrorResponse{
 			ErrorCode: "REFRESH_TOKEN_NOT_FOUND",
 			Message:   "Refresh token not found or has been revoked",
@@ -188,27 +203,41 @@ func (s *AuthService) RefreshTokenHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	// Generate new access tokens
-	accessClaims := &shared.Claims{
-		UserID:   claims.UserID,
-		Username: claims.Username,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-		},
-	}
-
-	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
-	accessTokenString, err := accessToken.SignedString(JWT_SECRET)
+	// generate tokens (access and refresh)
+	accessToken, refreshToken, err := s.GenerateToken(claims.UserID, claims.Username)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(shared.ErrorResponse{
 			ErrorCode: "TOKEN_GENERATION_FAILED",
-			Message:   "Failed to generate access token",
+			Message:   "Failed to generate tokens",
 		})
 	}
+	// expand expire session in redis
+	s.redisClient.Expire(context.Background(), sessionKey, 24*7*time.Hour)
 
-	return c.JSON(TokenResponse{
-		AccessToken: accessTokenString,
+	// Set access token as HTTP-Only cookie (15 minutes)
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    accessToken,
+		Expires:  time.Now().Add(15 * time.Minute),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "Lax",
+		Path:     "/",
+	})
+
+	// Set refresh token as HTTP-Only cookie (7 days)
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		Expires:  time.Now().Add(7 * 24 * time.Hour),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "Lax",
+		Path:     "/",
+	})
+
+	return c.JSON(fiber.Map{
+		"message": "Token refreshed successfully",
 	})
 }
 
@@ -225,6 +254,28 @@ func (s *AuthService) LogoutHandler(c *fiber.Ctx) error {
 	// delete session
 	sessionKey := fmt.Sprintf("session:%s", userId)
 	s.redisClient.Del(context.Background(), sessionKey)
+
+	// clear access token cookie
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    "",
+		Expires:  time.Now().Add(-time.Hour),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "Lax",
+		Path:     "/",
+	})
+
+	// clear refresh token cookie
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Expires:  time.Now().Add(-time.Hour),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "Lax",
+		Path:     "/",
+	})
 
 	return c.JSON(fiber.Map{
 		"message": "Logged out successfully",

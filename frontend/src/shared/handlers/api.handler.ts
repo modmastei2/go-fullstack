@@ -1,4 +1,4 @@
-import axios, { AxiosError, type AxiosRequestHeaders, type InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 
 const api = axios.create({
     baseURL: import.meta.env.BASE_API || '/api/v1',
@@ -28,12 +28,6 @@ const processQueue = (error: unknown = null, token: string | null = null) => {
 
 api.interceptors.request.use(
     (config) => {
-        // adding custom header before request is sent
-        // config.headers["X-Request-ID"] = Math.random().toString(36).substring(7);
-        // config.headers["Authorization"] = `Bearer ${localStorage.getItem("access_token")}`;
-
-        config.headers = addTokenToHeader(config.headers as AxiosRequestHeaders);
-
         return config;
     },
     (error) => {
@@ -49,18 +43,20 @@ api.interceptors.response.use(
         const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
         // Skip refresh token logic for login and unlock endpoints
-        if (originalRequest.url === '/auth/login' || originalRequest.url === '/auth/unlock') {
+        if (originalRequest.url === '/auth/login' ||
+            originalRequest.url === '/auth/unlock' ||
+            originalRequest.url === '/auth/refresh-token') {
             return Promise.reject(error);
         }
 
 
         // ถ้าเป็น 401 และยังไม่ได้ retry
         if (error.response && error.response.status === 401 && !originalRequest._retry) {
+            // add to queue
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });
                 }).then(() => {
-                    originalRequest.headers = addTokenToHeader(originalRequest.headers as AxiosRequestHeaders);
                     return api.request(originalRequest);
                 }).catch(err => {
                     return Promise.reject(err);
@@ -70,47 +66,25 @@ api.interceptors.response.use(
             originalRequest._retry = true;
             isRefreshing = true;
 
-            const refreshToken = localStorage.getItem("refresh_token");
-
-            if (!refreshToken) {
-                isRefreshing = false;
-                localStorage.removeItem('access_token');
-                localStorage.removeItem('refresh_token');
-                localStorage.removeItem('session_locked');
-                localStorage.removeItem('session_locked_at');
-                localStorage.removeItem('user_data');
-                window.location.href = '/pre';
-                return Promise.reject(error);
-            }
-
             try {
-                const response = await api.post('/auth/refresh-token', {
-                    refresh_token: refreshToken
-                });
-
-                const { accessToken } = response.data;
-                localStorage.setItem("access_token", accessToken);
+                await api.post('/auth/refresh-token', {});
 
                 isRefreshing = false;
 
-                api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-                originalRequest.headers = addTokenToHeader(originalRequest.headers as AxiosRequestHeaders);
-
-                processQueue(null, accessToken);
+                processQueue(null, "REFRESHED");
 
                 return api.request(originalRequest);
             }
-            catch (refreshError) {
+            catch (refreshError) { // if call refresh token fail
                 processQueue(refreshError, null);
+                isRefreshing = false;
 
-                // ลบ tokens และ redirect
-                localStorage.removeItem('access_token');
-                localStorage.removeItem('refresh_token');
-                localStorage.removeItem('session_locked');
-                localStorage.removeItem('session_locked_at');
-                localStorage.removeItem('user_data');
+                // clear all local storage
+                clearLocalStorage();
 
-                window.location.href = '/pre';
+                // redirect to pre-login page
+                if (!window.location.pathname.startsWith('/pre'))
+                    window.location.href = '/pre';
 
                 return Promise.reject(refreshError);
             }
@@ -119,43 +93,34 @@ api.interceptors.response.use(
             }
         }
 
-        // ถ้าเป็น LOCK_TIMEOUT ให้ลบ session และ redirect
-        if (error.response?.data?.errorCode === 'LOCK_TIMEOUT') {
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-            localStorage.removeItem('session_locked');
-            localStorage.removeItem('session_locked_at');
-            localStorage.removeItem('user_data');
-
-            window.location.href = '/pre';
+        // ถ้าเป็น SESSION_LOCKED ให้ redirect เฉพาะเมื่อไม่ได้อยู่หน้า pre-login
+        if (error.response?.data?.errorCode === 'SESSION_LOCKED') {
+            if (!window.location.pathname.startsWith('/pre')) {
+                // Don't clear session data, just redirect
+                window.location.href = '/pre';
+            }
+            return Promise.reject(error);
         }
 
-        // ถ้าเป็น SESSION_EXPIRED หรือ SESSION_NOT_FOUND
+        // ถ้าเป็น SESSION_EXPIRED หรือ SESSION_NOT_FOUND หรือ LOCK_TIMEOUT ให้ลบ session และ redirect
         if (
             error.response?.data?.errorCode === 'SESSION_EXPIRED' ||
-            error.response?.data?.errorCode === 'SESSION_NOT_FOUND'
+            error.response?.data?.errorCode === 'SESSION_NOT_FOUND' ||
+            error.response?.data?.errorCode === 'LOCK_TIMEOUT'
         ) {
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-            localStorage.removeItem('session_locked');
-            localStorage.removeItem('session_locked_at');
-            localStorage.removeItem('user_data');
+            clearLocalStorage();
 
             window.location.href = '/pre';
         }
-
 
         return Promise.reject(error);
     }
 )
 
-const addTokenToHeader = (headers: AxiosRequestHeaders) => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    return headers;
+function clearLocalStorage() {
+    localStorage.removeItem('session_locked');
+    localStorage.removeItem('session_locked_at');
+    localStorage.removeItem('user_data');
 }
 
 export interface ApiErrorResponse {
@@ -166,6 +131,5 @@ export interface ApiErrorResponse {
 export function isAxiosError(error: unknown): error is AxiosError<ApiErrorResponse> {
     return (error as AxiosError).isAxiosError === true;
 }
-
 
 export default api;

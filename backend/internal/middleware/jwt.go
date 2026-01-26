@@ -17,24 +17,16 @@ func AuthMiddleware(redisClient *redis.Client) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		cfg := config.GetConfig()
 		JWT_SECRET := []byte(cfg.Secrets.JWT_SECRET)
-		authHeader := c.Get("Authorization")
 
-		if authHeader == "" {
+		tokenString := c.Cookies("access_token")
+
+		if tokenString == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(shared.ErrorResponse{
 				ErrorCode: "MISSING_TOKEN",
 				Message:   "Authorization token is required",
 			})
 		}
 
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			return c.Status(fiber.StatusUnauthorized).JSON(shared.ErrorResponse{
-				ErrorCode: "INVALID_TOKEN_FORMAT",
-				Message:   "Authorization token format is invalid",
-			})
-		}
-
-		tokenString := parts[1]
 		claims := &shared.Claims{}
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 			return JWT_SECRET, nil

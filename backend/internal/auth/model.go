@@ -31,14 +31,10 @@ type LoginRequest struct {
 }
 
 type TokenResponse struct {
-	AccessToken  string      `json:"accessToken"`
-	RefreshToken string      `json:"refreshToken"`
-	User         interface{} `json:"user,omitempty"`
+	Message string      `json:"message"`
+	User    interface{} `json:"user,omitempty"`
 }
 
-type RefreshTokenRequest struct {
-	RefreshToken string `json:"refresh_token"`
-}
 type LockSessionRequest struct {
 	Timestamp int64 `json:"timestamp"`
 }

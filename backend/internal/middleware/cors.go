@@ -14,9 +14,10 @@ func CorsMiddleware() fiber.Handler {
 		allowOrigins = "http://localhost:3000, http://localhost:5173"
 	}
 	return cors.New(cors.Config{
-		AllowOrigins: allowOrigins,
-		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
-		AllowMethods: "GET, POST",
+		AllowOrigins:     allowOrigins,
+		AllowCredentials: true,
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowMethods:     "GET, POST",
 	})
 
 	// สำหรับการเปิดใช้งาน CORS อย่างละเอียด + Cookies

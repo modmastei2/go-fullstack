@@ -16,7 +16,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const initOnceRef = useRef(false);
 
     useIdleDetector({
-        idleTimeout: 15 * 60 * 1000, // 15 นาที
+        idleTimeout: 1 * 60 * 1000, // 15 นาที
         onIdle: async () => {
             if (user && !isLocked) {
                 console.log('User is idle. Locking session...');
@@ -43,8 +43,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const initAuth = async () => {
             setIsLoading(true); // เริ่ม loading
 
-            const accessToken = localStorage.getItem('access_token');
-            if (!accessToken) {
+            const userData = localStorage.getItem('user_data');
+            const sessionLocked = localStorage.getItem('session_locked');
+
+            // If no user data exists, skip API calls (not logged in)
+            if (!userData && !sessionLocked) {
                 setIsLoading(false);
                 return;
             }
@@ -66,16 +69,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     localStorage.setItem('session_locked_at', lockTime.toString());
                 }
             } catch (error: unknown) {
-                console.error('Failed to initialize auth:', error);
-
-                if (isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
-                    localStorage.removeItem('access_token');
-                    localStorage.removeItem('refresh_token');
-                    localStorage.removeItem('session_locked');
-                    localStorage.removeItem('session_locked_at');
-                    localStorage.removeItem('user_data');
-                    setUser(null);
-                    setIsLocked(false);
+                // If 401/403, check if it's after refresh token failed
+                // The axios interceptor will handle refresh token automatically
+                // Only clear if refresh also failed (axios interceptor already cleared data)
+                if (isAxiosError(error)) {
+                    if (error.response?.status === 401 || error.response?.status === 403) {
+                        // Check if data was already cleared by interceptor
+                        const hasUserData = !!localStorage.getItem('user_data');
+                        if (!hasUserData) {
+                            // Data was cleared by interceptor after refresh failed
+                            setUser(null);
+                            setIsLocked(false);
+                        } else {
+                            // Unexpected error, clear stale data
+                            localStorage.removeItem('session_locked');
+                            localStorage.removeItem('session_locked_at');
+                            localStorage.removeItem('user_data');
+                            setUser(null);
+                            setIsLocked(false);
+                        }
+                    } else {
+                        console.error('Failed to initialize auth:', error);
+                    }
+                } else {
+                    console.error('Failed to initialize auth:', error);
                 }
             } finally {
                 setIsLoading(false); // จบ loading
@@ -99,14 +116,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const handleStorageChange = (e: StorageEvent) => {
             if (e.key === 'session_locked') {
                 syncLockState();
-            } else if (e.key === 'access_token') {
-                if (!e.newValue) {
-                    setUser(null);
-                    setIsLocked(false);
-                    setLockedAt(0);
-                    localStorage.removeItem('session_locked');
-                    localStorage.removeItem('session_locked_at');
-                }
             } else if (e.key === 'user_data' && e.newValue) {
                 try {
                     const userData = JSON.parse(e.newValue);
@@ -130,10 +139,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const login = async (username: string, password: string) => {
         const response = await api.post('/auth/login', { username, password });
-        const { accessToken, refreshToken, user: userData } = response.data;
+        const { user: userData } = response.data;
 
-        localStorage.setItem('access_token', accessToken);
-        localStorage.setItem('refresh_token', refreshToken);
+        // Tokens are now stored in HTTP-Only cookies by the backend
+        // We only need to store user data in localStorage
         localStorage.setItem('user_data', JSON.stringify(userData));
         localStorage.removeItem('session_locked');
         localStorage.removeItem('session_locked_at');
@@ -145,12 +154,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const logout = async () => {
         try {
+            // Backend will clear the cookies
             await api.post('/auth/logout');
         } catch (error) {
             console.error('Logout failed:', error);
         } finally {
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
+             // Only clear localStorage data (cookies are handled by backend)
             localStorage.removeItem('user_data');
             localStorage.removeItem('session_locked');
             localStorage.removeItem('session_locked_at');
