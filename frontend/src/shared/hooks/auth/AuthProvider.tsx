@@ -1,4 +1,4 @@
-import { type ReactNode, useState, useEffect, useCallback } from 'react';
+import { type ReactNode, useState, useEffect, useCallback, useRef } from 'react';
 import { AuthContext, type User, type AuthContextType } from './AuthContext';
 import api, { isAxiosError } from '../../handlers/api.handler';
 import useIdleDetector from '../useIdleDetector';
@@ -13,7 +13,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [isLocked, setIsLocked] = useState<boolean>(false);
     const [lockedAt, setLockedAt] = useState<number>(0);
-    const [isInitialized, setIsInitialized] = useState<boolean>(false);
+    const initOnceRef = useRef(false);
 
     useIdleDetector({
         idleTimeout: 15 * 60 * 1000, // 15 นาที
@@ -46,7 +46,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const accessToken = localStorage.getItem('access_token');
             if (!accessToken) {
                 setIsLoading(false);
-                setIsInitialized(true);
                 return;
             }
 
@@ -80,12 +79,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 }
             } finally {
                 setIsLoading(false); // จบ loading
-                setIsInitialized(true);
             }
         };
 
         // รันเฉพาะครั้งแรก
-        if (!isInitialized) {
+        if (!initOnceRef.current) {
+            initOnceRef.current = true; // block duplicate runs in StrictMode
             initAuth();
         }
 
@@ -127,7 +126,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             window.removeEventListener('session-locked', handleSessionLocked);
             window.removeEventListener('storage', handleStorageChange);
         };
-    }, [syncLockState, isInitialized]);
+    }, [syncLockState]);
 
     const login = async (username: string, password: string) => {
         const response = await api.post('/auth/login', { username, password });
