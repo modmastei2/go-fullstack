@@ -9,10 +9,12 @@ interface LockScreenProps {
 }
 
 const LockScreen: React.FC<LockScreenProps> = ({ username, onUnlock, onLogout, lockedAt }) => {
+    const LOCK_TIMEOUT = Number(import.meta.env.VITE_LOCK_SCREEN_TIMEOUT_SECONDS) || 600;
+    
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(600); // 10 นาที = 600 วินาที
+    const [timeLeft, setTimeLeft] = useState(LOCK_TIMEOUT);
     const [slideValue, setSlideValue] = useState(0);
     const isDraggingRef = useRef(false);
     const sliderRef = useRef<HTMLInputElement>(null);
@@ -20,7 +22,7 @@ const LockScreen: React.FC<LockScreenProps> = ({ username, onUnlock, onLogout, l
     useEffect(() => {
         const interval = setInterval(() => {
             const elapsed = Math.floor((Date.now() - lockedAt) / 1000);
-            const remaining = 600 - elapsed; // 10 นาที
+            const remaining = LOCK_TIMEOUT - elapsed;
 
             if (remaining <= 0) {
                 handleForceLogout();

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"go-backend/internal/config"
 	"go-backend/internal/shared"
@@ -20,20 +21,43 @@ type AuthService struct {
 	redisClient *redis.Client
 }
 
+type TokenResult struct {
+	AccessToken        string
+	RefreshToken       string
+	SessionID          string
+	AccessTokenExpire  time.Duration
+	RefreshTokenExpire time.Duration
+	SessionExpire      time.Duration
+}
+
 func NewAuthService(redisClient *redis.Client) *AuthService {
 	return &AuthService{
 		redisClient: redisClient,
 	}
 }
 
-func (s *AuthService) GenerateToken(userID, username string) (string, string, error) {
+func (s *AuthService) GenerateToken(userID, username string, existingSessionID ...string) (*TokenResult, error) {
 	cfg := config.GetConfig()
 	JWT_SECRET := []byte(cfg.Secrets.JWT_SECRET)
+
+	accessTokenExpire := time.Duration(cfg.Env.ACCESS_TOKEN_EXPIRE_MINUTES) * time.Minute
+	refreshTokenExpire := time.Duration(cfg.Env.REFRESH_TOKEN_EXPIRE_DAYS) * 24 * time.Hour
+	sessionExpire := time.Duration(cfg.Env.SESSION_EXPIRE_DAYS) * 24 * time.Hour
+
+	// Generate unique session ID for this device/browser or reuse existing one
+	var sessionID string
+	if len(existingSessionID) > 0 && existingSessionID[0] != "" {
+		sessionID = existingSessionID[0]
+	} else {
+		sessionID = uuid.New().String()
+	}
+
 	accessClaims := &shared.Claims{
-		UserID:   userID,
-		Username: username,
+		UserID:    userID,
+		Username:  username,
+		SessionID: sessionID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(accessTokenExpire)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
@@ -41,16 +65,17 @@ func (s *AuthService) GenerateToken(userID, username string) (string, string, er
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
 	accessTokenString, err := accessToken.SignedString(JWT_SECRET)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 
 	refreshTokenID := uuid.New().String()
 	refreshClaims := &shared.Claims{
-		UserID:   userID,
-		Username: username,
+		UserID:    userID,
+		Username:  username,
+		SessionID: sessionID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        refreshTokenID,
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(refreshTokenExpire)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
@@ -58,17 +83,97 @@ func (s *AuthService) GenerateToken(userID, username string) (string, string, er
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
 	refreshTokenString, err := refreshToken.SignedString(JWT_SECRET)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 
-	// store refresh token in Redis
-	key := fmt.Sprintf("refresh_token:%s:%s", userID, refreshTokenID)
-	err = s.redisClient.Set(context.Background(), key, refreshTokenString, 7*24*time.Hour).Err()
+	// Only check session limits when creating NEW session (not during refresh)
+	isNewSession := len(existingSessionID) == 0 || existingSessionID[0] == ""
+
+	if isNewSession {
+		// MULTIPLE_SESSION_USER: limit concurrent sessions per user
+		if cfg.Env.MULTIPLE_SESSION_USER > 0 {
+			// Get all existing sessions for this user
+			pattern := fmt.Sprintf("session:%s:*", userID)
+			keys, err := s.redisClient.Keys(context.Background(), pattern).Result()
+
+			if err == nil && len(keys) >= cfg.Env.MULTIPLE_SESSION_USER {
+				// Need to delete oldest session(s) to make room
+				type sessionInfo struct {
+					key       string
+					sessionId string
+					loginTime int64
+				}
+
+				sessions := []sessionInfo{}
+				for _, key := range keys {
+					// Get loginTime from session data
+					data, err := s.redisClient.HGetAll(context.Background(), key).Result()
+					if err == nil {
+						loginTime, _ := strconv.ParseInt(data["loginTime"], 10, 64)
+						parts := strings.Split(key, ":")
+						if len(parts) == 3 {
+							sessions = append(sessions, sessionInfo{
+								key:       key,
+								sessionId: parts[2],
+								loginTime: loginTime,
+							})
+						}
+					}
+				}
+
+				// Sort by loginTime (oldest first)
+				for i := 0; i < len(sessions)-1; i++ {
+					for j := i + 1; j < len(sessions); j++ {
+						if sessions[i].loginTime > sessions[j].loginTime {
+							sessions[i], sessions[j] = sessions[j], sessions[i]
+						}
+					}
+				}
+
+				// Delete oldest session(s) to make room for new one
+				toDelete := len(sessions) - cfg.Env.MULTIPLE_SESSION_USER + 1
+				for i := 0; i < toDelete; i++ {
+					// Delete session
+					s.redisClient.Del(context.Background(), sessions[i].key)
+					// Delete associated refresh tokens
+					refreshPattern := fmt.Sprintf("refresh_token:%s:%s:*", userID, sessions[i].sessionId)
+					refreshKeys, _ := s.redisClient.Keys(context.Background(), refreshPattern).Result()
+					if len(refreshKeys) > 0 {
+						s.redisClient.Del(context.Background(), refreshKeys...)
+					}
+				}
+			}
+		} else if cfg.Env.MULTIPLE_SESSION_USER == 0 {
+			// Single session mode: delete all existing sessions and refresh tokens
+			pattern := fmt.Sprintf("session:%s:*", userID)
+			keys, err := s.redisClient.Keys(context.Background(), pattern).Result()
+			if err == nil && len(keys) > 0 {
+				s.redisClient.Del(context.Background(), keys...)
+			}
+			refreshPattern := fmt.Sprintf("refresh_token:%s:*", userID)
+			refreshKeys, err := s.redisClient.Keys(context.Background(), refreshPattern).Result()
+			if err == nil && len(refreshKeys) > 0 {
+				s.redisClient.Del(context.Background(), refreshKeys...)
+			}
+		}
+		// If MULTIPLE_SESSION_USER < 0: unlimited sessions (no cleanup)
+	}
+
+	// store refresh token in Redis with sessionId in key
+	key := fmt.Sprintf("refresh_token:%s:%s:%s", userID, sessionID, refreshTokenID)
+	err = s.redisClient.Set(context.Background(), key, refreshTokenString, refreshTokenExpire).Err()
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 
-	return accessTokenString, refreshTokenString, nil
+	return &TokenResult{
+		AccessToken:        accessTokenString,
+		RefreshToken:       refreshTokenString,
+		SessionID:          sessionID,
+		AccessTokenExpire:  accessTokenExpire,
+		RefreshTokenExpire: refreshTokenExpire,
+		SessionExpire:      sessionExpire,
+	}, nil
 }
 
 func (s *AuthService) LoginHandler(c *fiber.Ctx) error {
@@ -107,7 +212,7 @@ func (s *AuthService) LoginHandler(c *fiber.Ctx) error {
 	}
 
 	// generate tokens (access and refresh)
-	accessToken, refreshToken, err := s.GenerateToken(user.UserId, user.Username)
+	tokenResult, err := s.GenerateToken(user.UserId, user.Username)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(shared.ErrorResponse{
 			ErrorCode: "TOKEN_GENERATION_FAILED",
@@ -115,8 +220,8 @@ func (s *AuthService) LoginHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	// store session in Redis
-	sessionKey := fmt.Sprintf("session:%s", user.UserId)
+	// store session in Redis with device-specific key
+	sessionKey := fmt.Sprintf("session:%s:%s", user.UserId, tokenResult.SessionID)
 	sessionData := map[string]interface{}{
 		"username":  user.Username,
 		"loginTime": time.Now().Unix(),
@@ -131,24 +236,25 @@ func (s *AuthService) LoginHandler(c *fiber.Ctx) error {
 			Message:   "Failed to store session data",
 		})
 	}
-	s.redisClient.Expire(context.Background(), sessionKey, 24*7*time.Hour)
 
-	// Set access token as HTTP-Only cookie (15 minutes)
+	s.redisClient.Expire(context.Background(), sessionKey, tokenResult.SessionExpire)
+
+	// Set access token as HTTP-Only cookie
 	c.Cookie(&fiber.Cookie{
 		Name:     "access_token",
-		Value:    accessToken,
-		Expires:  time.Now().Add(15 * time.Minute),
+		Value:    tokenResult.AccessToken,
+		Expires:  time.Now().Add(tokenResult.AccessTokenExpire),
 		HTTPOnly: true,
 		Secure:   true,
 		SameSite: "Lax",
 		Path:     "/",
 	})
 
-	// Set refresh token as HTTP-Only cookie (7 days)
+	// Set refresh token as HTTP-Only cookie
 	c.Cookie(&fiber.Cookie{
 		Name:     "refresh_token",
-		Value:    refreshToken,
-		Expires:  time.Now().Add(7 * 24 * time.Hour),
+		Value:    tokenResult.RefreshToken,
+		Expires:  time.Now().Add(tokenResult.RefreshTokenExpire),
 		HTTPOnly: true,
 		Secure:   true,
 		SameSite: "Lax",
@@ -185,7 +291,7 @@ func (s *AuthService) RefreshTokenHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	key := fmt.Sprintf("refresh_token:%s:%s", claims.UserID, claims.ID)
+	key := fmt.Sprintf("refresh_token:%s:%s:%s", claims.UserID, claims.SessionID, claims.ID)
 	storedToken, err := s.redisClient.Get(context.Background(), key).Result()
 	if err != nil || storedToken != refreshTokenFromCookie {
 		return c.Status(fiber.StatusUnauthorized).JSON(shared.ErrorResponse{
@@ -194,7 +300,8 @@ func (s *AuthService) RefreshTokenHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	sessionKey := fmt.Sprintf("session:%s", claims.UserID)
+	// Check device-specific session using sessionId from token
+	sessionKey := fmt.Sprintf("session:%s:%s", claims.UserID, claims.SessionID)
 	exists, err := s.redisClient.Exists(context.Background(), sessionKey).Result()
 	if err != nil || exists == 0 {
 		return c.Status(fiber.StatusUnauthorized).JSON(shared.ErrorResponse{
@@ -203,33 +310,34 @@ func (s *AuthService) RefreshTokenHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	// generate tokens (access and refresh)
-	accessToken, refreshToken, err := s.GenerateToken(claims.UserID, claims.Username)
+	// generate tokens (access and refresh) - reuse existing sessionId
+	tokenResult, err := s.GenerateToken(claims.UserID, claims.Username, claims.SessionID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(shared.ErrorResponse{
 			ErrorCode: "TOKEN_GENERATION_FAILED",
 			Message:   "Failed to generate tokens",
 		})
 	}
-	// expand expire session in redis
-	s.redisClient.Expire(context.Background(), sessionKey, 24*7*time.Hour)
 
-	// Set access token as HTTP-Only cookie (15 minutes)
+	// expand expire session in redis
+	s.redisClient.Expire(context.Background(), sessionKey, tokenResult.SessionExpire)
+
+	// Set access token as HTTP-Only cookie
 	c.Cookie(&fiber.Cookie{
 		Name:     "access_token",
-		Value:    accessToken,
-		Expires:  time.Now().Add(15 * time.Minute),
+		Value:    tokenResult.AccessToken,
+		Expires:  time.Now().Add(tokenResult.AccessTokenExpire),
 		HTTPOnly: true,
 		Secure:   true,
 		SameSite: "Lax",
 		Path:     "/",
 	})
 
-	// Set refresh token as HTTP-Only cookie (7 days)
+	// Set refresh token as HTTP-Only cookie
 	c.Cookie(&fiber.Cookie{
 		Name:     "refresh_token",
-		Value:    refreshToken,
-		Expires:  time.Now().Add(7 * 24 * time.Hour),
+		Value:    tokenResult.RefreshToken,
+		Expires:  time.Now().Add(tokenResult.RefreshTokenExpire),
 		HTTPOnly: true,
 		Secure:   true,
 		SameSite: "Lax",
@@ -243,16 +351,27 @@ func (s *AuthService) RefreshTokenHandler(c *fiber.Ctx) error {
 
 func (s *AuthService) LogoutHandler(c *fiber.Ctx) error {
 	userId := c.Locals("userId").(string)
+	sessionId := c.Locals("sessionId").(string)
+	refreshTokenFromCookie := c.Cookies("refresh_token")
 
-	// delete all refresh tokens for the user
-	pattern := fmt.Sprintf("refresh_token:%s:*", userId)
-	keys, err := s.redisClient.Keys(context.Background(), pattern).Result()
-	if err == nil && len(keys) > 0 {
-		s.redisClient.Del(context.Background(), keys...)
+	// delete only current refresh token (not all sessions)
+	if refreshTokenFromCookie != "" {
+		cfg := config.GetConfig()
+		JWT_SECRET := []byte(cfg.Secrets.JWT_SECRET)
+		claims := &shared.Claims{}
+		token, err := jwt.ParseWithClaims(refreshTokenFromCookie, claims, func(token *jwt.Token) (interface{}, error) {
+			return JWT_SECRET, nil
+		})
+
+		// delete current refresh token from Redis
+		if err == nil && token.Valid && claims.ID != "" {
+			refreshTokenKey := fmt.Sprintf("refresh_token:%s:%s:%s", userId, sessionId, claims.ID)
+			s.redisClient.Del(context.Background(), refreshTokenKey)
+		}
 	}
 
-	// delete session
-	sessionKey := fmt.Sprintf("session:%s", userId)
+	// Delete device-specific session
+	sessionKey := fmt.Sprintf("session:%s:%s", userId, sessionId)
 	s.redisClient.Del(context.Background(), sessionKey)
 
 	// clear access token cookie
@@ -285,9 +404,10 @@ func (s *AuthService) LogoutHandler(c *fiber.Ctx) error {
 func (s *AuthService) ProfileHandler(c *fiber.Ctx) error {
 	userId := c.Locals("userId").(string)
 	username := c.Locals("username").(string)
+	sessionId := c.Locals("sessionId").(string)
 
 	// get session info
-	sessionKey := fmt.Sprintf("session:%s", userId)
+	sessionKey := fmt.Sprintf("session:%s:%s", userId, sessionId)
 	sessionData, err := s.redisClient.HGetAll(context.Background(), sessionKey).Result()
 
 	if err != nil {
@@ -308,7 +428,8 @@ func (s *AuthService) ProfileHandler(c *fiber.Ctx) error {
 
 func (s *AuthService) LockSessionHandler(c *fiber.Ctx) error {
 	userId := c.Locals("userId").(string)
-	sessionKey := fmt.Sprintf("session:%s", userId)
+	sessionId := c.Locals("sessionId").(string)
+	sessionKey := fmt.Sprintf("session:%s:%s", userId, sessionId)
 
 	// update session to locked
 	err := s.redisClient.HSet(context.Background(), sessionKey, map[string]interface{}{
@@ -332,6 +453,7 @@ func (s *AuthService) LockSessionHandler(c *fiber.Ctx) error {
 func (s *AuthService) UnlockSessionHandler(c *fiber.Ctx) error {
 	userId := c.Locals("userId").(string)
 	username := c.Locals("username").(string)
+	sessionId := c.Locals("sessionId").(string)
 
 	var req UnlockRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -349,7 +471,7 @@ func (s *AuthService) UnlockSessionHandler(c *fiber.Ctx) error {
 	}
 
 	// check session
-	sessionKey := fmt.Sprintf("session:%s", userId)
+	sessionKey := fmt.Sprintf("session:%s:%s", userId, sessionId)
 	sessionData, err := s.redisClient.HGetAll(context.Background(), sessionKey).Result()
 
 	if err != nil || len(sessionData) == 0 {
@@ -367,13 +489,16 @@ func (s *AuthService) UnlockSessionHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	// check lock over 10 min
+	// check lock over timeout
 	if lockedAtStr, exists := sessionData["lockedAt"]; exists {
 		lockedAt, _ := strconv.ParseInt(lockedAtStr, 10, 64)
 		lockDuration := time.Now().Unix() - lockedAt
 
-		if lockDuration > 600 {
-			s.deleteUserSession(userId)
+		cfg := config.GetConfig()
+		lockTimeout := int64(cfg.Env.LOCK_SCREEN_TIMEOUT_SECONDS)
+
+		if lockDuration > lockTimeout {
+			s.deleteSession(userId, sessionId)
 			return c.Status(fiber.StatusUnauthorized).JSON(shared.ErrorResponse{
 				ErrorCode: "LOCK_TIMEOUT",
 				Message:   "Session lock timeout. Please login again.",
@@ -421,25 +546,25 @@ func (s *AuthService) UnlockSessionHandler(c *fiber.Ctx) error {
 	})
 }
 
-func (s *AuthService) deleteUserSession(userId string) {
-	// delete all refresh tokens for the user
-	pattern := fmt.Sprintf("refresh_token:%s:*", userId)
-	keys, err := s.redisClient.Keys(context.Background(), pattern).Result()
+func (s *AuthService) deleteSession(userId, sessionId string) {
+	// delete device-specific session
+	sessionKey := fmt.Sprintf("session:%s:%s", userId, sessionId)
+	s.redisClient.Del(context.Background(), sessionKey)
 
+	// delete only refresh tokens associated with THIS session
+	pattern := fmt.Sprintf("refresh_token:%s:%s:*", userId, sessionId)
+	keys, err := s.redisClient.Keys(context.Background(), pattern).Result()
 	if err == nil && len(keys) > 0 {
 		s.redisClient.Del(context.Background(), keys...)
 	}
-
-	// delete session
-	sessionKey := fmt.Sprintf("session:%s", userId)
-	s.redisClient.Del(context.Background(), sessionKey)
 }
 
 // Handler สำหรับเช็คสถานะ session
 func (s *AuthService) CheckSessionHandler(c *fiber.Ctx) error {
 	userId := c.Locals("userId").(string)
+	sessionId := c.Locals("sessionId").(string)
 
-	sessionKey := fmt.Sprintf("session:%s", userId)
+	sessionKey := fmt.Sprintf("session:%s:%s", userId, sessionId)
 	sessionData, err := s.redisClient.HGetAll(context.Background(), sessionKey).Result()
 
 	if err != nil || len(sessionData) == 0 {
@@ -460,9 +585,12 @@ func (s *AuthService) CheckSessionHandler(c *fiber.Ctx) error {
 			lockedAt, _ := strconv.ParseInt(lockedAtStr, 10, 64)
 			lockDuration := time.Now().Unix() - lockedAt
 
-			// ถ้า lock เกิน 10 นาที ให้ logout
-			if lockDuration > 600 {
-				s.deleteUserSession(userId)
+			cfg := config.GetConfig()
+			lockTimeout := int64(cfg.Env.LOCK_SCREEN_TIMEOUT_SECONDS)
+
+			// ถ้า lock เกิน timeout ให้ logout
+			if lockDuration > lockTimeout {
+				s.deleteSession(userId, sessionId)
 				return c.Status(fiber.StatusUnauthorized).JSON(shared.ErrorResponse{
 					ErrorCode: "LOCK_TIMEOUT",
 					Message:   "Session expired due to inactivity",
@@ -470,7 +598,7 @@ func (s *AuthService) CheckSessionHandler(c *fiber.Ctx) error {
 			}
 
 			response["lockedAt"] = lockedAt
-			response["timeRemaining"] = 600 - lockDuration
+			response["timeRemaining"] = lockTimeout - lockDuration
 		}
 	}
 

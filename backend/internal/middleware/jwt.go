@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"go-backend/internal/config"
 	"go-backend/internal/shared"
 	"strconv"
@@ -40,7 +41,7 @@ func AuthMiddleware(redisClient *redis.Client) fiber.Handler {
 		}
 
 		// check of session exists in redis
-		sessionKey := "session:" + claims.UserID
+		sessionKey := fmt.Sprintf("session:%s:%s", claims.UserID, claims.SessionID)
 		sessionData, err := redisClient.HGetAll(context.Background(), sessionKey).Result()
 		if err != nil || len(sessionData) == 0 {
 			return c.Status(fiber.StatusUnauthorized).JSON(shared.ErrorResponse{
@@ -69,14 +70,17 @@ func AuthMiddleware(redisClient *redis.Client) fiber.Handler {
 		}
 
 		if isLocked && !isAllowedPath {
-			// check lock over 10 minutes
+			// check lock over timeout
 			if lockedAtStr, exists := sessionData["lockedAt"]; exists {
 				lockedAt, _ := strconv.ParseInt(lockedAtStr, 10, 64)
 				lockDuration := time.Now().Unix() - lockedAt
 
-				if lockDuration > 600 {
-					// delete session
-					deleteUserSession(redisClient, claims.UserID)
+				cfg := config.GetConfig()
+				lockTimeout := int64(cfg.Env.LOCK_SCREEN_TIMEOUT_SECONDS)
+
+				if lockDuration > lockTimeout {
+					// delete this device's session
+					deleteSession(redisClient, claims.UserID, claims.SessionID)
 					return c.Status(fiber.StatusUnauthorized).JSON(shared.ErrorResponse{
 						ErrorCode: "LOCK_TIMEOUT",
 						Message:   "Session expire due to inactivity. Please login again.",
@@ -93,21 +97,22 @@ func AuthMiddleware(redisClient *redis.Client) fiber.Handler {
 		// store user information in context locals
 		c.Locals("userId", claims.UserID)
 		c.Locals("username", claims.Username)
+		c.Locals("sessionId", claims.SessionID)
 
 		return c.Next()
 	}
 }
 
-// Helper function
-func deleteUserSession(redisClient *redis.Client, userId string) {
-	// ลบ refresh tokens
-	pattern := "refresh_token:" + userId + ":*"
+// Helper function for deleting device-specific session
+func deleteSession(redisClient *redis.Client, userId, sessionId string) {
+	// ลบ device-specific session
+	sessionKey := fmt.Sprintf("session:%s:%s", userId, sessionId)
+	redisClient.Del(context.Background(), sessionKey)
+
+	// ลบเฉพาะ refresh tokens ของ session นี้
+	pattern := fmt.Sprintf("refresh_token:%s:%s:*", userId, sessionId)
 	keys, err := redisClient.Keys(context.Background(), pattern).Result()
 	if err == nil && len(keys) > 0 {
 		redisClient.Del(context.Background(), keys...)
 	}
-
-	// ลบ session
-	sessionKey := "session:" + userId
-	redisClient.Del(context.Background(), sessionKey)
 }
