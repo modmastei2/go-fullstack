@@ -7,8 +7,8 @@ on:
       - 'v*.*.*'
 
 env:
-  BACKEND_IMAGE: xxxx/go-backend
-  FRONTEND_IMAGE: xxxx/react-frontend
+  BACKEND_IMAGE: modmastei2/go-backend
+  FRONTEND_IMAGE: modmastei2/react-frontend
   
 jobs:
   secret-scan:
@@ -23,7 +23,7 @@ jobs:
         with: 
           config_path: .gitleaks.toml
   
-  security-check:
+  code-check:
     #if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
 
@@ -41,13 +41,87 @@ jobs:
         with:
           go-version: '1.25.3'
       
-      # --- TRY BUILD GO
       - name: Go Build
         run: cd backend && go build -o main ./cmd/api
 
-      # --- VET GO
       - name: Go Vet
         run: cd backend && go vet ./cmd/api
+      
+      - name: Go Test
+        run: cd backend && go test -v ./...
+
+      # --- FRONTEND TEST
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Frontend Install Dependencies
+        run: cd frontend && npm install
+
+      #- name: Frontend Test
+      #  run: cd frontend && npm test -- --watchAll=false
+
+      - name: Frontend Build
+        run: cd frontend && npm ci && npm run build
+
+      # --- DOCKER FILE LINT
+      - name: Lint Backend Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: backend/Dockerfile
+
+      - name: Lint Frontend Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: frontend/Dockerfile 
+
+  build-image:
+    #if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- DOCKER HUB LOGIN
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+      
+      # --- BUILD AND PUSH BACKEND IMAGE
+      - name: Build and Push Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ env.BACKEND_IMAGE }}:${{ github.ref_name }} 
+
+      # --- BUILD AND PUSH FRONTEND IMAGE
+      - name: Build and Push Frontend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ env.FRONTEND_IMAGE }}:${{ github.ref_name }}
+
+      # --- CONTAINER SCAN BACKEND
+      - name: Scan Backend Image
+        uses: aquasecurity/trivy-action@v2
+        with:
+          image-ref: ${{ env.BACKEND_IMAGE }}:${{ github.ref_name }}
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+
+      # --- CONTAINER SCAN FRONTEND
+      - name: Scan Frontend Image
+        uses: aquasecurity/trivy-action@v2
+        with:
+          image-ref: ${{ env.FRONTEND_IMAGE }}:${{ github.ref_name }}
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+      
 #  build:
 
 #    runs-on: ubuntu-latest
