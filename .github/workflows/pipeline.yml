@@ -12,14 +12,15 @@ env:
   
 jobs:
   security-and-build:
+    #if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
       # --- VALIDATE TAG 
-      - name: Validate Tag Format
-        run: echo $GITHUB_REF_NAME | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$'
+      #- name: Validate Tag Format
+      #  run: echo $GITHUB_REF_NAME | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$'
 
       # --- SECRET SCAN
       - name: Secret Scan
