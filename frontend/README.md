@@ -19,5 +19,5 @@ docker build -t frontend:1.0 .
 
 ### Serve Docker
 ```sh
-docker compose -p app --env-file .env.prod up -d --build
+docker compose -p app --env-file .env.docker up -d --build
 ```
