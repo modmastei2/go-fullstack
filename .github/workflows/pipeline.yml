@@ -81,6 +81,10 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          args: >
+            -Dsonar.projectKey=modmastei2_go-fullstack
+            -Dsonar.sources=.
 
   build-image:
     #if: github.ref_type == 'tag'
