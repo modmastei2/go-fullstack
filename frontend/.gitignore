@@ -33,3 +33,7 @@ dist-ssr
 *.sw?
 
 src/devextreme-license.ts
+
+# env file
+.env
+.env.*
