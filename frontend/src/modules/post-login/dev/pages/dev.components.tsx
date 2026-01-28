@@ -6,6 +6,7 @@ import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import Fingerprint from '@mui/icons-material/Fingerprint';
 import SendIcon from '@mui/icons-material/Send';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
+import MyNote from '../../../../shared/components/Notes/MyNote';
 
 export default function DevComponents() {
     const colors = ['primary', 'secondary', 'success', 'error', 'info', 'warning'] as const;
@@ -57,17 +58,17 @@ export default function DevComponents() {
     ];
     return (
         <div className="space-y-6">
-            <div className="bg-white dark:bg-slate-700 rounded-lg shadow-md p-6">
-                <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-2">Dev Components Page</h2>
+            <div className="p-6 rounded-lg shadow-md bg-slate-50 dark:bg-slate-900">
+                <h2 className="mb-2 text-3xl font-bold text-gray-800 dark:text-gray-200">Dev Components Page</h2>
                 <p className="text-gray-600 dark:text-gray-400">This is a placeholder for development components.</p>
             </div>
 
-            <div className="bg-white dark:bg-slate-700 rounded-lg shadow-md p-6">
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">Button</h2>
+            <div className="relative p-6 rounded-lg shadow-md bg-slate-50 dark:bg-slate-900">
+                <h2 className="mb-2 text-2xl font-bold text-gray-800 dark:text-gray-200">Button</h2>
 
                 {/* Button variants and colors */}
-                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Variants and Colors</h3>
-                <div>
+                <h3 className="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-300">Variants and Colors</h3>
+                <div className="p-4 bg-white border-gray-200 rounded-lg shadow-md dark:bg-gray-800 dark:border-gray-700">
                     {colors.map((color) => (
                         <div key={color} className="mb-4 space-x-4">
                             {variants.map((variant) => (
@@ -83,8 +84,8 @@ export default function DevComponents() {
                 </div>
 
                 {/* Button sizes */}
-                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Button sizes</h3>
-                <div>
+                <h3 className="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-300">Button sizes</h3>
+                <div className="p-4 bg-white border border-gray-200 rounded-lg shadow-md dark:bg-gray-800 dark:border-gray-700">
                     <div className="space-x-4">
                         {sizes.map((size) => (
                             <div key={size} className="inline-block">
@@ -99,8 +100,8 @@ export default function DevComponents() {
                 </div>
 
                 {/* Disabled states */}
-                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Disabled states</h3>
-                <div>
+                <h3 className="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-300">Disabled states</h3>
+                <div className="p-4 bg-white border border-gray-200 rounded-lg shadow-md dark:bg-gray-800 dark:border-gray-700">
                     <div className="space-x-4">
                         {disabledStates.map((isDisabled) => (
                             <div key={isDisabled ? 'disabled' : 'enabled'} className="inline-block">
@@ -114,8 +115,8 @@ export default function DevComponents() {
                 </div>
 
                 {/* Button with icon */}
-                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Button with icon</h3>
-                <div>
+                <h3 className="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-300">Button with icon</h3>
+                <div className="p-4 bg-white border border-gray-200 rounded-lg shadow-md dark:bg-gray-800 dark:border-gray-700">
                     <div className="inline-block space-x-4">
                         <Button variant="contained" color="primary" size="small" startIcon={<span>🚀</span>}>
                             Icon Button
@@ -130,8 +131,8 @@ export default function DevComponents() {
                 </div>
 
                 {/* Icon button */}
-                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Icon button</h3>
-                <div>
+                <h3 className="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-300">Icon button</h3>
+                <div className="p-4 bg-white border border-gray-200 rounded-lg shadow-md dark:bg-gray-800 dark:border-gray-700">
                     <div className="inline-block">
                         <IconButton className="text-white!" aria-label="delete">
                             <DeleteIcon />
@@ -150,7 +151,7 @@ export default function DevComponents() {
                 </div>
 
                 {/* File upload */}
-                {/* <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">File upload button</h3>
+                {/* <h3 className="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-300">File upload button</h3>
                 <div>
                     <Button component="label" role={undefined} variant="contained" tabIndex={-1} startIcon={<CloudUploadIcon />}>
                         Upload files
@@ -160,21 +161,39 @@ export default function DevComponents() {
                 </div> */}
 
                 {/* Data Grid */}
-                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Data Grid</h3>
-                <DataGrid
-                    rows={rows}
-                    columns={columns}
-                    initialState={{
-                        pagination: {
-                            paginationModel: {
-                                pageSize: 5,
-                            },
-                        },
-                    }}
-                    pageSizeOptions={[5]}
-                    checkboxSelection
-                    disableRowSelectionOnClick
-                />
+                <h3 className="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-300">Data Grid</h3>
+                <div className="p-4 mb-4 bg-white border border-gray-200 rounded-lg shadow-md h-[400px] dark:bg-gray-800 dark:border-gray-700">
+                    <div>
+                        <DataGrid
+                            rows={rows}
+                            columns={columns}
+                            initialState={{
+                                pagination: {
+                                    paginationModel: {
+                                        pageSize: 5,
+                                    },
+                                },
+                            }}
+                            pageSizeOptions={[5]}
+                            checkboxSelection
+                            disableRowSelectionOnClick
+                        />
+                    </div>
+                </div>
+                <CodeBlock lang="language-ts">{`<DataGrid rows={rows} columns={columns} pageSizeOptions={[5]} checkboxSelection disableRowSelectionOnClick />`}</CodeBlock>
+
+
+                {/* Notes */}
+
+                <h3 className="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-300">My Note</h3>
+                {/* <div>
+                    <MyNote></MyNote>
+                </div> */}
+                <div className="grid grid-cols-1 gap-4 mt-4 md:grid-cols-3">
+                    {/* <MyNote></MyNote>
+                    <MyNote></MyNote> */}
+                    <MyNote></MyNote>
+                </div>
             </div>
         </div>
     );
