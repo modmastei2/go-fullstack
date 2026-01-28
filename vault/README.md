@@ -56,8 +56,8 @@ vault secrets enable -path=secret kv-v2
 
 ```sh
 vault kv put secret/fiber-app \
-  jwt_secret="e4dc8542b2a656613680dd0ff5f87b8f79041b4def0f79717469fe17a4d7a6b9" \
-  db_password="superuser01"
+  jwt_secret="EXAMPLE_DEV_JWT_SECRET" \
+  db_password="EXAMPLE_DEV_DB_PASSWORD"
 ```
 
 ```sh

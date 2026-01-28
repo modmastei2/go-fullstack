@@ -184,9 +184,9 @@ pkill -f "kubectl port-forward"
 - Backend API: http://localhost:8080/api/v1/health
 - Swagger Docs: http://localhost:8080/swagger/index.html
 - Kibana (Logs): http://localhost:5601
-- MinIO Console: http://localhost:9001 (admin/minioadmin)
+- MinIO Console: http://localhost:9001 (EXAMPLE_DEV_MINIO_ROOT_USER/EXAMPLE_DEV_MINIO_ROOT_PASSWORD)
 - MinIO API: http://localhost:9000
-- Vault UI: http://localhost:8200 (token: toor)
+- Vault UI: http://localhost:8200 (token: EXAMPLE_DEV_VAULT_ROOT_TOKEN)
 - Elasticsearch: http://localhost:9200
 
 ---
@@ -241,8 +241,8 @@ Default settings:
 ### Secrets
 
 Secrets ใช้ base64 encoding:
-- Vault token: `toor` (dev mode)
-- MinIO: `minioadmin` / `minioadmin`
+- Vault token: `EXAMPLE_DEV_VAULT_ROOT_TOKEN` (dev mode)
+- MinIO: `EXAMPLE_DEV_MINIO_ROOT_USER` / `EXAMPLE_DEV_MINIO_ROOT_PASSWORD`
 - Redis: no password
 
 **Production:** ใช้ Sealed Secrets หรือ External Secrets Operator
