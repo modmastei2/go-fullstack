@@ -1,0 +1,35 @@
+name: Sucure CI/(CD)
+
+on:
+  push:
+    branches: [ "master" ]
+    tags:
+      - 'v*.*.*'
+
+env:
+  BACKEND_IMAGE: xxxx/go-backend
+  FRONTEND_IMAGE: xxxx/react-frontend
+  
+jobs:
+  security-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- VALIDATE TAG 
+      - name: Validate Tag Format
+        run: echo $GITHUB_REF_NAME | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$'
+
+      # --- SECRET SCAN
+      - name: Secret Scan
+        uses: gitleaks/gitleaks-action@v2
+
+#  build:
+
+#    runs-on: ubuntu-latest
+
+#    steps:
+#    - uses: actions/checkout@v4
+#    - name: Build the Docker image
+#      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
