@@ -44,11 +44,11 @@ type EnvironmentConfig struct {
 
 	MULTIPLE_SESSION_USER int
 
-	// token & session configuration
-	ACCESS_TOKEN_EXPIRE_MINUTES int
-	REFRESH_TOKEN_EXPIRE_DAYS   int
-	SESSION_EXPIRE_DAYS         int
-	LOCK_SCREEN_TIMEOUT_SECONDS int
+	// token & session configuration (all in minutes)
+	ACCESS_TOKEN_EXPIRE_MINUTES  int
+	REFRESH_TOKEN_EXPIRE_MINUTES int
+	SESSION_EXPIRE_MINUTES       int
+	LOCK_SCREEN_TIMEOUT_MINUTES  int
 }
 
 type SecretsConfig struct {
@@ -91,28 +91,28 @@ func LoadEnv() {
 	}
 
 	cfg.Env = EnvironmentConfig{
-		APP_ENV:                     APP_ENV,
-		APP_FORCE_HTTPS:             os.Getenv("APP_FORCE_HTTPS") == "true",
-		SYSTEM_NAME:                 os.Getenv("SYSTEM_NAME"),
-		INIT_MAX_RETRY:              shared.StringToIntWithDefault(os.Getenv("INIT_MAX_RETRY"), 5),
-		CORS_ALLOW_ORIGINS:          os.Getenv("CORS_ALLOW_ORIGINS"),
-		VAULT_DEV_MODE:              os.Getenv("VAULT_DEV_MODE") == "true",
-		VAULT_HOST:                  os.Getenv("VAULT_HOST"),
-		VAULT_PORT:                  os.Getenv("VAULT_PORT"),
-		VAULT_TOKEN:                 os.Getenv("VAULT_TOKEN"),
-		VAULT_ROLE:                  os.Getenv("VAULT_ROLE"),
-		REDIS_HOST:                  os.Getenv("REDIS_HOST"),
-		REDIS_PORT:                  os.Getenv("REDIS_PORT"),
-		REDIS_DB:                    os.Getenv("REDIS_DB"),
-		MINIO_HOST:                  os.Getenv("MINIO_HOST"),
-		MINIO_PORT:                  os.Getenv("MINIO_PORT"),
-		MINIO_BUCKET:                os.Getenv("MINIO_BUCKET"),
-		MINIO_USE_SSL:               os.Getenv("MINIO_USE_SSL") == "true",
-		MULTIPLE_SESSION_USER:       shared.StringToIntWithDefault(os.Getenv("MULTIPLE_SESSION_USER"), 0),
-		ACCESS_TOKEN_EXPIRE_MINUTES: shared.StringToIntWithDefault(os.Getenv("ACCESS_TOKEN_EXPIRE_MINUTES"), 15),
-		REFRESH_TOKEN_EXPIRE_DAYS:   shared.StringToIntWithDefault(os.Getenv("REFRESH_TOKEN_EXPIRE_DAYS"), 7),
-		SESSION_EXPIRE_DAYS:         shared.StringToIntWithDefault(os.Getenv("SESSION_EXPIRE_DAYS"), 7),
-		LOCK_SCREEN_TIMEOUT_SECONDS: shared.StringToIntWithDefault(os.Getenv("LOCK_SCREEN_TIMEOUT_SECONDS"), 600),
+		APP_ENV:                      APP_ENV,
+		APP_FORCE_HTTPS:              os.Getenv("APP_FORCE_HTTPS") == "true",
+		SYSTEM_NAME:                  os.Getenv("SYSTEM_NAME"),
+		INIT_MAX_RETRY:               shared.StringToIntWithDefault(os.Getenv("INIT_MAX_RETRY"), 5),
+		CORS_ALLOW_ORIGINS:           os.Getenv("CORS_ALLOW_ORIGINS"),
+		VAULT_DEV_MODE:               os.Getenv("VAULT_DEV_MODE") == "true",
+		VAULT_HOST:                   os.Getenv("VAULT_HOST"),
+		VAULT_PORT:                   os.Getenv("VAULT_PORT"),
+		VAULT_TOKEN:                  os.Getenv("VAULT_TOKEN"),
+		VAULT_ROLE:                   os.Getenv("VAULT_ROLE"),
+		REDIS_HOST:                   os.Getenv("REDIS_HOST"),
+		REDIS_PORT:                   os.Getenv("REDIS_PORT"),
+		REDIS_DB:                     os.Getenv("REDIS_DB"),
+		MINIO_HOST:                   os.Getenv("MINIO_HOST"),
+		MINIO_PORT:                   os.Getenv("MINIO_PORT"),
+		MINIO_BUCKET:                 os.Getenv("MINIO_BUCKET"),
+		MINIO_USE_SSL:                os.Getenv("MINIO_USE_SSL") == "true",
+		MULTIPLE_SESSION_USER:        shared.StringToIntWithDefault(os.Getenv("MULTIPLE_SESSION_USER"), 0),
+		ACCESS_TOKEN_EXPIRE_MINUTES:  shared.StringToIntWithDefault(os.Getenv("ACCESS_TOKEN_EXPIRE_MINUTES"), 15),
+		REFRESH_TOKEN_EXPIRE_MINUTES: shared.StringToIntWithDefault(os.Getenv("REFRESH_TOKEN_EXPIRE_MINUTES"), 10080),
+		SESSION_EXPIRE_MINUTES:       shared.StringToIntWithDefault(os.Getenv("SESSION_EXPIRE_MINUTES"), 30),
+		LOCK_SCREEN_TIMEOUT_MINUTES:  shared.StringToIntWithDefault(os.Getenv("LOCK_SCREEN_TIMEOUT_MINUTES"), 10),
 	}
 
 	log.Println("✅ Environment variables loaded successfully")

@@ -76,7 +76,7 @@ func AuthMiddleware(redisClient *redis.Client) fiber.Handler {
 				lockDuration := time.Now().Unix() - lockedAt
 
 				cfg := config.GetConfig()
-				lockTimeout := int64(cfg.Env.LOCK_SCREEN_TIMEOUT_SECONDS)
+				lockTimeout := int64(cfg.Env.LOCK_SCREEN_TIMEOUT_MINUTES * 60)
 
 				if lockDuration > lockTimeout {
 					// delete this device's session

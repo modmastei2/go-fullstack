@@ -41,8 +41,8 @@ func (s *AuthService) GenerateToken(userID, username string, existingSessionID .
 	JWT_SECRET := []byte(cfg.Secrets.JWT_SECRET)
 
 	accessTokenExpire := time.Duration(cfg.Env.ACCESS_TOKEN_EXPIRE_MINUTES) * time.Minute
-	refreshTokenExpire := time.Duration(cfg.Env.REFRESH_TOKEN_EXPIRE_DAYS) * 24 * time.Hour
-	sessionExpire := time.Duration(cfg.Env.SESSION_EXPIRE_DAYS) * 24 * time.Hour
+	refreshTokenExpire := time.Duration(cfg.Env.REFRESH_TOKEN_EXPIRE_MINUTES) * time.Minute
+	sessionExpire := time.Duration(cfg.Env.SESSION_EXPIRE_MINUTES) * time.Minute
 
 	// Generate unique session ID for this device/browser or reuse existing one
 	var sessionID string
@@ -495,7 +495,7 @@ func (s *AuthService) UnlockSessionHandler(c *fiber.Ctx) error {
 		lockDuration := time.Now().Unix() - lockedAt
 
 		cfg := config.GetConfig()
-		lockTimeout := int64(cfg.Env.LOCK_SCREEN_TIMEOUT_SECONDS)
+		lockTimeout := int64(cfg.Env.LOCK_SCREEN_TIMEOUT_MINUTES * 60)
 
 		if lockDuration > lockTimeout {
 			s.deleteSession(userId, sessionId)
@@ -586,7 +586,7 @@ func (s *AuthService) CheckSessionHandler(c *fiber.Ctx) error {
 			lockDuration := time.Now().Unix() - lockedAt
 
 			cfg := config.GetConfig()
-			lockTimeout := int64(cfg.Env.LOCK_SCREEN_TIMEOUT_SECONDS)
+			lockTimeout := int64(cfg.Env.LOCK_SCREEN_TIMEOUT_MINUTES * 60)
 
 			// ถ้า lock เกิน timeout ให้ logout
 			if lockDuration > lockTimeout {

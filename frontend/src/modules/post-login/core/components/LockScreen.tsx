@@ -9,7 +9,7 @@ interface LockScreenProps {
 }
 
 const LockScreen: React.FC<LockScreenProps> = ({ username, onUnlock, onLogout, lockedAt }) => {
-    const LOCK_TIMEOUT = Number(import.meta.env.VITE_LOCK_SCREEN_TIMEOUT_SECONDS) || 600;
+    const LOCK_TIMEOUT = (Number(import.meta.env.VITE_LOCK_SCREEN_TIMEOUT_MINUTES) || 10) * 60;
     
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');

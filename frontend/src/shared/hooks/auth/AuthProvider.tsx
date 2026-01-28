@@ -15,7 +15,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [lockedAt, setLockedAt] = useState<number>(0);
     const initOnceRef = useRef(false);
     
-    const IDLE_TIMEOUT = (Number(import.meta.env.VITE_IDLE_TIMEOUT_SECONDS) || 900) * 1000;
+    const IDLE_TIMEOUT = (Number(import.meta.env.VITE_IDLE_TIMEOUT_MINUTES) || 15) * 60 * 1000;
 
     useIdleDetector({
         idleTimeout: IDLE_TIMEOUT,
