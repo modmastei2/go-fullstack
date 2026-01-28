@@ -25,6 +25,8 @@ jobs:
       # --- SECRET SCAN
       - name: Secret Scan
         uses: gitleaks/gitleaks-action@v2
+        with: 
+          config_path: .gitleaks.toml
 
 #  build:
 

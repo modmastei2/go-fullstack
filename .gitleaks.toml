@@ -1,0 +1,8 @@
+title = "Custom Gitleaks Config"
+
+[allowlist]
+description = "Allow example dev secrets"
+
+regexes = [
+    '''EXAMPLE_DEV_[A-Z0-9_]+'''
+]
