@@ -108,7 +108,7 @@ jobs:
 
       # --- CONTAINER SCAN BACKEND
       - name: Scan Backend Image
-        uses: aquasecurity/trivy-action@v0.33.1
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           image-ref: ${{ env.BACKEND_IMAGE }}:${{ github.ref_name }}
           severity: HIGH,CRITICAL
@@ -116,7 +116,7 @@ jobs:
 
       # --- CONTAINER SCAN FRONTEND
       - name: Scan Frontend Image
-        uses: aquasecurity/trivy-action@v0.33.1
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           image-ref: ${{ env.FRONTEND_IMAGE }}:${{ github.ref_name }}
           severity: HIGH,CRITICAL
