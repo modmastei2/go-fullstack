@@ -84,6 +84,7 @@ jobs:
         with:
           args: >
             -Dsonar.projectKey=modmastei2_go-fullstack
+            -Dsonar.organization=modmastei2
             -Dsonar.sources=.
 
   build-image:
