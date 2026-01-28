@@ -18,11 +18,7 @@ COPY . .
 #ENV VITE_ENV=${VITE_ENV}
 
 # ถ้าใช้ .env.prod
-RUN if [ "$VITE_ENV" = "docker" ]; then cp .env.docker .env; fi
-
-# Build Vite
-RUN npm run build
-
+RUN if [ "$VITE_ENV" = "docker" ]; then cp .env.docker .env; fi && npm run build
 
 # =========================
 # Stage 2: Runtime
