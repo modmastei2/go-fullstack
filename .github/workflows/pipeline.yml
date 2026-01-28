@@ -103,6 +103,8 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
+          build-args: |
+            VITE_ENV=ci
           push: true
           tags: ${{ env.FRONTEND_IMAGE }}:${{ github.ref_name }}
 
