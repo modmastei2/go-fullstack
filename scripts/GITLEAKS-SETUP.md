@@ -4,9 +4,35 @@
 
 ---
 
-## การติดตั้ง Gitleaks
+## Setup ด้วย Script (แนะนำ)
 
-### Windows (Chocolatey)
+### Windows - ติดตั้งทั้งหมดอัตโนมัติ
+
+```powershell
+# Run as Administrator
+.\scripts\setup-all.ps1
+```
+
+Script นี้จะ:
+- ติดตั้ง Chocolatey (ถ้ายังไม่มี)
+- ติดตั้ง Gitleaks
+- ติดตั้ง Git pre-commit hook
+
+### ติดตั้งเฉพาะ Git Hook
+
+ถ้าติดตั้ง Gitleaks แล้ว ต้องการเพิ่ม hook เท่านั้น:
+
+```powershell
+.\scripts\setup-hook-only.ps1
+```
+
+---
+
+## การติดตั้งแบบ Manual
+
+### ติดตั้ง Gitleaks
+
+**Windows (Chocolatey)**
 
 ```powershell
 choco install gitleaks -y
@@ -37,6 +63,27 @@ sudo mv gitleaks /usr/local/bin/
 
 ```bash
 gitleaks version
+```
+
+### ติดตั้ง Git Pre-commit Hook
+
+สร้างไฟล์ `.git/hooks/pre-commit`:
+
+```bash
+#!/bin/bash
+# .git/hooks/pre-commit
+
+if gitleaks git --staged --config=.gitleaks.toml >/dev/null 2>&1; then
+    exit 0
+else
+    echo "❌ Gitleaks found secrets! Click 'Open Git Log' to see details."
+    exit 1
+fi
+```
+
+**Linux/macOS - ทำให้ executable:**
+```bash
+chmod +x .git/hooks/pre-commit
 ```
 
 ---
