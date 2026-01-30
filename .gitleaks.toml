@@ -1,5 +1,9 @@
 title = "Custom Gitleaks Config"
 
+# โหลด rules มาตรฐานของ gitleaks มาด้วย
+[extend]
+useDefault = true
+
 [allowlist]
 description = "Allow example dev secrets"
 
