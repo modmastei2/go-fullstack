@@ -1,12 +1,10 @@
 title = "Custom Gitleaks Config"
 
-# โหลด rules มาตรฐานของ gitleaks มาด้วย
 [extend]
-useDefault = true
+path = "gitleaks.toml"
 
 [allowlist]
 description = "Allow example dev secrets"
-
 regexes = [
     '''EXAMPLE_DEV_[A-Z0-9_]+'''
 ]
