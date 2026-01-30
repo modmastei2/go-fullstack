@@ -13,3 +13,4 @@ repos:
         entry: gitleaks git --staged --verbose
         language: system
         pass_filenames: false
+        verbose: true
