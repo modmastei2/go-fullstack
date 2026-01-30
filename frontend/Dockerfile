@@ -8,7 +8,7 @@ WORKDIR /app
 # Copy dependency files
 COPY package.json package-lock.json ./
 
-RUN npm ci
+RUN npm ci --no-audit --no-fund
 
 # Copy source
 COPY . .
