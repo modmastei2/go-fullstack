@@ -22,60 +22,135 @@ func (s *HistoricalService) GetHistoricalFilter(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(GetFilterResponse{
-		Criteria: []CriteriaModel{
+		Group: []CriteriaGroupModel{
 			{
-				Name:        "client_code",
-				DisplayExpr: "Client Code",
-				Type:        "text",
-				DataSource: []DataSourceModel{
+				Text:  "Search",
+				SmCol: 1,
+				MdCol: 2,
+				LgCol: 3,
+				Criteria: []CriteriaModel{
 					{
-						Text:        "Nattawut.W",
-						Value:       "000001",
-						DisplayExpr: "000001: Nattawut.W",
-						ValueExpr:   "000001",
-						Disabled:    false,
-					},
-				},
-			},
-			{
-				Name:        "client_name",
-				DisplayExpr: "Client Name",
-				Type:        "dropdown",
-				DataSource: []DataSourceModel{
-					{
-						Text:        "Nattawut.W",
-						Value:       "000001",
-						DisplayExpr: "000001: Nattawut.W",
-						ValueExpr:   "000001",
-						Disabled:    false,
-					},
-				},
-			},
-			{
-				Name:        "product_type",
-				DisplayExpr: "Product",
-				Type:        "dropdown",
-				DataSource: []DataSourceModel{
-					{
-						Text:        "Mutual Fund",
-						Value:       "MF",
-						DisplayExpr: "MF: Mutual Fund",
-						ValueExpr:   "MF",
-						Disabled:    false,
+						Name:        "client_code",
+						DisplayExpr: "Client Code",
+						Type:        "text",
+						ColSpan:     1,
+						DataSource:  []DataSourceModel{},
 					},
 					{
-						Text:        "Bond",
-						Value:       "BOND",
-						DisplayExpr: "BOND: Bond",
-						ValueExpr:   "BOND",
-						Disabled:    false,
+						Name:        "client_name",
+						DisplayExpr: "Client Name",
+						Type:        "text",
+						ColSpan:     1,
+						DataSource:  []DataSourceModel{},
 					},
 					{
-						Text:        "Structured Note",
-						Value:       "SN",
-						DisplayExpr: "SN: Structured Note",
-						ValueExpr:   "SN",
-						Disabled:    false,
+						Name:        "product",
+						DisplayExpr: "Product",
+						Type:        "dropdown",
+						ColSpan:     1,
+						DataSource: []DataSourceModel{
+							{
+								Text:        "All Product",
+								Value:       "",
+								DisplayExpr: "All Product",
+								ValueExpr:   "",
+								Disabled:    false,
+							},
+							{
+								Text:        "Mutual Fund",
+								Value:       "MF",
+								DisplayExpr: "Mutual Fund",
+								ValueExpr:   "MF",
+								Disabled:    false,
+							},
+							{
+								Text:        "Bond",
+								Value:       "BOND",
+								DisplayExpr: "Bond",
+								ValueExpr:   "BOND",
+								Disabled:    false,
+							},
+							{
+								Text:        "Structured Note",
+								Value:       "SN",
+								DisplayExpr: "Structured Note",
+								ValueExpr:   "SN",
+								Disabled:    false,
+							},
+						},
+					},
+					{
+						Name:        "sale_id",
+						DisplayExpr: "Sale ID",
+						Type:        "dropdown",
+						ColSpan:     1,
+						DataSource: []DataSourceModel{
+							{
+								Text:        "S001",
+								Value:       "S001",
+								DisplayExpr: "S001",
+								ValueExpr:   "S001",
+								Disabled:    false,
+							},
+							{
+								Text:        "S002",
+								Value:       "S002",
+								DisplayExpr: "S002",
+								ValueExpr:   "S002",
+								Disabled:    false,
+							},
+						},
+					},
+					{
+						Name:        "sale_name",
+						DisplayExpr: "Sale Name",
+						Type:        "dropdown",
+						ColSpan:     1,
+						DataSource: []DataSourceModel{
+							{
+								Text:        "John Doe",
+								Value:       "john",
+								DisplayExpr: "John Doe",
+								ValueExpr:   "john",
+								Disabled:    false,
+							},
+							{
+								Text:        "Jane Smith",
+								Value:       "jane",
+								DisplayExpr: "Jane Smith",
+								ValueExpr:   "jane",
+								Disabled:    false,
+							},
+						},
+					},
+					{
+						Name:        "sale_team",
+						DisplayExpr: "Sale Team",
+						Type:        "dropdown",
+						ColSpan:     1,
+						DataSource: []DataSourceModel{
+							{
+								Text:        "Team A",
+								Value:       "team_a",
+								DisplayExpr: "Team A",
+								ValueExpr:   "team_a",
+								Disabled:    false,
+							},
+							{
+								Text:        "Team B",
+								Value:       "team_b",
+								DisplayExpr: "Team B",
+								ValueExpr:   "team_b",
+								Disabled:    false,
+							},
+						},
+					},
+					{
+						Name:        "period",
+						DisplayExpr: "Select period",
+						Type:        "date_range",
+						ColSpan:     2,
+						DataSource:  []DataSourceModel{},
 					},
 				},
 			},

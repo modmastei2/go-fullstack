@@ -10,6 +10,12 @@ export class PreRoute {
     static forgotPasswordFullPath: string = `${PreRoute.prefix}${PreRoute.forgotPassword}`;
 }
 
+export class HistoricalRoute {
+    static prefix = 'historical';
+    static historical = 'historical-trans';
+    static historicalFullPath: string = `${HistoricalRoute.prefix}/${HistoricalRoute.historical}`;
+}
+
 export class CommonRoute {
     static unauthorized = '/unauthorized';
     static notFound = '/not-found';

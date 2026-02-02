@@ -35,7 +35,7 @@ export default function PrivateLayout() {
         <div className="min-h-screen overflow-hidden border bg-slate-200 text-slate-600 border-slate-300 dark:bg-slate-950 dark:border-slate-900 dark:text-slate-200">
             {/* Navigation Bar */}
             <nav className="sticky top-0 z-40 border border-white shadow-md bg-slate-50 text-slate-900 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100">
-                <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+                <div className="px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
                         <div className="flex items-center">
                             <h1 className="text-xl font-bold">My Application</h1>
@@ -72,7 +72,7 @@ export default function PrivateLayout() {
             </nav>
 
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-[calc(100vh-118px)]">
+            <main className="px-4 sm:px-6 lg:px-8 py-8 min-h-[calc(100vh-118px)]">
                 {/* <div className="px-8 py-8 border border-white shadow-md bg-slate-50 text-slate-900 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100"> */}
                     <Outlet />
                 {/* </div> */}
