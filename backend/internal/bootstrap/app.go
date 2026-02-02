@@ -8,6 +8,7 @@ import (
 
 	"go-backend/internal/auth"
 	"go-backend/internal/config"
+	"go-backend/internal/filter"
 	"go-backend/internal/middleware"
 	"go-backend/internal/shared"
 
@@ -81,6 +82,9 @@ func InitializeApp(app *fiber.App) {
 
 	// ******* Create protected routes group *******
 	protected := api.Group("/", middleware.AuthMiddleware(redisClient))
+
+	// ******* Register Filter routes *******
+	filter.RegisterRoutes(&api, redisClient)
 
 	// Register other routes here, e.g., user, profile, etc.
 	protected.Get("/profile", func(c *fiber.Ctx) error {
