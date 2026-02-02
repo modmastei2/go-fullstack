@@ -1,0 +1,18 @@
+title = "Custom Gitleaks Config"
+
+# โหลด rules มาตรฐานของ gitleaks มาด้วย
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allow example dev secrets"
+
+regexes = [
+    '''EXAMPLE_DEV_[A-Z0-9_]+'''
+]
+
+paths = [
+    '''GITLEAKS-SETUP\.md''',
+    '''.*_test\.go''',
+    '''.*\.test\.ts'''
+]

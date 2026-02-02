@@ -14,7 +14,7 @@ npm run dev
 
 ### Build Image [Skip if use Serve Docker]
 ```sh
-docker build -t frontend:1.0 .
+docker build --build-arg VITE_ENV=docker -t frontend:1.0 .
 ```
 
 ### Serve Docker

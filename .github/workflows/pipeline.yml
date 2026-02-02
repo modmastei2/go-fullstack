@@ -1,0 +1,145 @@
+name: build-and-test
+
+on:
+  push:
+    branches: [ "master" ]
+    tags:
+      - 'v*.*.*'
+
+env:
+  BACKEND_IMAGE: modmastei2/go-backend
+  FRONTEND_IMAGE: modmastei2/react-frontend
+  
+jobs:
+  secret-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- SECRET SCAN
+      - name: Secret Scan
+        uses: gitleaks/gitleaks-action@v2
+        with: 
+          config_path: .gitleaks.toml
+  
+  code-check:
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- VALIDATE TAG FORMAT
+      - name: Validate Tag Format
+        if: github.ref_type == 'tag'
+        run: echo $GITHUB_REF_NAME | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || (echo "Tag format is invalid. Use vMAJOR.MINOR.PATCH" && exit 1)
+
+      # --- BACKEND TEST
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.3'
+      
+      - name: Go Build
+        run: cd backend && go build -o main ./cmd/api
+
+      - name: Go Vet
+        run: cd backend && go vet ./cmd/api
+      
+      - name: Go Test
+        run: cd backend && go test -v ./...
+
+      # --- FRONTEND TEST
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Frontend Install Dependencies
+        run: cd frontend && npm install
+
+      #- name: Frontend Test
+      #  run: cd frontend && npm test -- --watchAll=false
+
+      - name: Frontend Build
+        run: cd frontend && npm ci && npm run build
+
+      # --- DOCKER FILE LINT
+      - name: Lint Backend Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: backend/Dockerfile
+
+      - name: Lint Frontend Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: frontend/Dockerfile 
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v7.0.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          args: >
+            -Dsonar.projectKey=modmastei2_go-fullstack
+            -Dsonar.organization=modmastei2
+            -Dsonar.sources=.
+
+  build-image:
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- DOCKER HUB LOGIN
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+      
+      # --- BUILD AND PUSH BACKEND IMAGE
+      - name: Build and Push Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ env.BACKEND_IMAGE }}:${{ github.ref_name }} 
+
+      # --- BUILD AND PUSH FRONTEND IMAGE
+      - name: Build and Push Frontend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          build-args: |
+            VITE_ENV=ci
+          push: true
+          tags: ${{ env.FRONTEND_IMAGE }}:${{ github.ref_name }}
+
+      # --- CONTAINER SCAN BACKEND
+      - name: Scan Backend Image
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: ${{ env.BACKEND_IMAGE }}:${{ github.ref_name }}
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+
+      # --- CONTAINER SCAN FRONTEND
+      - name: Scan Frontend Image
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: ${{ env.FRONTEND_IMAGE }}:${{ github.ref_name }}
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+      
+#  build:
+
+#    runs-on: ubuntu-latest
+
+#    steps:
+#    - uses: actions/checkout@v4
+#    - name: Build the Docker image
+#      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)

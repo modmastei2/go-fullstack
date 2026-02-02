@@ -53,11 +53,11 @@ spec:
             -H "Content-Type: application/json" \
             -d '{
               "data": {
-                "jwt_secret": "e4dc8542b2a656613680dd0ff5f87b8f79041b4def0f79717469fe17a4d7a6b9",
-                "db_password": "superuser01",
-                "redis_password": "",
-                "minio_root_user": "minioadmin",
-                "minio_root_password": "miniopassword"
+                "jwt_secret": "EXAMPLE_DEV_JWT_SECRET",
+                "db_password": "EXAMPLE_DEV_DB_PASSWORD",
+                "redis_password": "EXAMPLE_DEV_REDIS_PASSWORD",
+                "minio_root_user": "EXAMPLE_DEV_MINIO_ROOT_USER",
+                "minio_root_password": "EXAMPLE_DEV_MINIO_ROOT_PASSWORD"
               }
             }' \
             http://vault:8200/v1/secret/data/fiber-app

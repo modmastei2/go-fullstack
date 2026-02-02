@@ -4,6 +4,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VITE_ENV: docker
     ports:
       - "3000:80"
     env_file:

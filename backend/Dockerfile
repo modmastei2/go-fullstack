@@ -16,11 +16,12 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/api
 
 # Run stage
-FROM alpine:latest
+FROM alpine:3.22
 
 WORKDIR /app
 
 # Install ca-certificates for HTTPS
+# hadolint ignore=DL3018
 RUN apk --no-cache add ca-certificates
 
 # Copy binary from builder

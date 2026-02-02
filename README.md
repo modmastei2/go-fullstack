@@ -1,0 +1,1 @@
+![build-and-test](https://github.com/modmastei2/go-fullstack/actions/workflows/pipeline.yml/badge.svg)

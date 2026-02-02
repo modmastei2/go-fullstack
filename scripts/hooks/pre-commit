@@ -1,0 +1,9 @@
+#!/bin/bash
+# .git/hooks/pre-commit
+
+if gitleaks git --staged --config=.gitleaks.toml >/dev/null 2>&1; then
+    exit 0
+else
+    echo "❌ Gitleaks found secrets! Click 'Open Git Log' to see details."
+    exit 1
+fi
