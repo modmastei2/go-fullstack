@@ -15,6 +15,7 @@
     "@mui/icons-material": "^7.3.7",
     "@mui/material": "^7.3.7",
     "@mui/x-data-grid": "^8.24.0",
+    "@mui/x-data-grid-premium": "^8.27.0",
     "@tailwindcss/vite": "^4.1.18",
     "axios": "^1.13.2",
     "moment": "^2.30.1",
