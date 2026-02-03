@@ -121,7 +121,7 @@ export default function Criteria({ criteriaKey = 'dashboard', onClickSearch }: C
                 return (
                     <div className="flex flex-wrap gap-2">
                         <div className="flex-1">
-                            <label className="block text-xs text-gray-600 mb-1">From</label>
+                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">From</label>
                             <TextField 
                                 type="date" 
                                 size="small" 
@@ -132,7 +132,7 @@ export default function Criteria({ criteriaKey = 'dashboard', onClickSearch }: C
                             />
                         </div>
                         <div className="flex-1">
-                            <label className="block text-xs text-gray-600 mb-1">To</label>
+                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">To</label>
                             <TextField 
                                 type="date" 
                                 size="small" 
@@ -195,7 +195,7 @@ export default function Criteria({ criteriaKey = 'dashboard', onClickSearch }: C
                                 className={
                                     criterion.col_span > 1 ? `md:col-span-${criterion.col_span} lg:col-span-${criterion.col_span}` : ''
                                 }>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">{criterion.display_expr}</label>
+                                <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">{criterion.display_expr}</label>
                                 {renderInput(criterion, filter.value?.[criterion.name])}
                             </div>
                         ))}

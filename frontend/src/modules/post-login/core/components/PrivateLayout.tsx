@@ -1,9 +1,15 @@
 import { Outlet } from 'react-router-dom';
+import { ToggleButtonGroup, ToggleButton } from '@mui/material';
+import LightModeIcon from '@mui/icons-material/LightMode';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
+import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness';
 import { useAuth } from '../../../../shared/hooks/auth/useAuth';
-import { applyTheme } from '../../../../shared/handlers/theme.handler';
+import { useTheme } from '../../../../shared/hooks/theme/useTheme';
+import type { ThemeMode } from '../../../../shared/theme/theme.types';
 
 export default function PrivateLayout() {
     const { user, logout } = useAuth();
+    const { mode, setMode } = useTheme();
 
     const handleLogout = async () => {
         if (window.confirm('Are you sure you want to logout?')) {
@@ -42,18 +48,59 @@ export default function PrivateLayout() {
                         </div>
 
                         <div className="flex items-center space-x-4">
-                            {/* toggle theme dark / light button */}
-                            <div className="space-x-2">
-                                <span className="cursor-pointer" onClick={() => applyTheme('light')}>
-                                    Light /
-                                </span>
-                                <span className="cursor-pointer" onClick={() => applyTheme('dark')}>
-                                    Dark /
-                                </span>
-                                <span className="cursor-pointer" onClick={() => applyTheme('system')}>
+                            {/* 3-state theme toggle switch */}
+                            <ToggleButtonGroup
+                                value={mode}
+                                exclusive
+                                onChange={(_, newMode) => {
+                                    if (newMode !== null) {
+                                        setMode(newMode as ThemeMode);
+                                    }
+                                }}
+                                size="small"
+                                aria-label="theme mode"
+                                sx={{
+                                    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                    borderRadius: '12px',
+                                    padding: '4px',
+                                    gap: '4px',
+                                    border: 'none',
+                                    '& .MuiToggleButton-root': {
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        textTransform: 'none',
+                                        fontWeight: 500,
+                                        px: 2,
+                                        py: 0.75,
+                                        transition: 'all 0.2s ease-in-out',
+                                        color: 'text.secondary',
+                                        '&.Mui-selected': {
+                                            backgroundColor: 'background.paper',
+                                            color: 'primary.main',
+                                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                            '&:hover': {
+                                                backgroundColor: 'background.paper',
+                                            },
+                                        },
+                                        '&:hover': {
+                                            backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                                        },
+                                    },
+                                }}
+                            >
+                                <ToggleButton value="system" aria-label="system mode">
+                                    <SettingsBrightnessIcon fontSize="small" sx={{ mr: 0.5 }} />
                                     System
-                                </span>
-                            </div>
+                                </ToggleButton>
+                                <ToggleButton value="light" aria-label="light mode">
+                                    <LightModeIcon fontSize="small" sx={{ mr: 0.5 }} />
+                                    Light
+                                </ToggleButton>
+                                <ToggleButton value="dark" aria-label="dark mode">
+                                    <DarkModeIcon fontSize="small" sx={{ mr: 0.5 }} />
+                                    Dark
+                                </ToggleButton>
+                            </ToggleButtonGroup>
                             <div className="flex items-center space-x-2">
                                 <div className="flex items-center justify-center w-8 h-8 rounded-full bg-linear-to-br from-blue-500 to-purple-600">
                                     <span className="text-sm font-semibold">{user?.username?.charAt(0).toUpperCase()}</span>
