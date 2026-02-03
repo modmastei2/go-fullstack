@@ -3,23 +3,25 @@ export interface GetFilterParam {
 }
 
 export interface GetFilterResponse {
-    group: CriteriaGroupModel[];
+    meta_group: MetaGroupModel[];
+    data_source: { [key: string]: DataSourceModel[] };
+    value: { [key: string]: any };
 }
 
-export interface CriteriaGroupModel {
+export interface MetaGroupModel {
     text: string;
     sm_col: number;
     md_col: number;
     lg_col: number;
-    criteria: CriteriaModel[];
+    meta: MetaModel[];
 }
 
-export interface CriteriaModel {
+export interface MetaModel {
     name: string;
     display_expr: string;
     type: string; // dropdown, date, date_range, text, number
     col_span: number;
-    data_source?: DataSourceModel[];
+    data_source_key?: string;
 }
 
 export interface DataSourceModel {

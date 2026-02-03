@@ -1,16 +1,20 @@
 import { useRef, useState, useEffect } from 'react';
-import type { GetFilterResponse, CriteriaGroupModel, CriteriaModel } from './CriteriaModel';
+import { TextField, Select, MenuItem, FormControl, Button } from '@mui/material';
+import type { GetFilterResponse, MetaModel } from './CriteriaModel';
 import api from '../../handlers/api.handler';
+import moment from 'moment';
 
 export type CriteriaKey = 'dashboard' | 'historical';
 
 export interface CriteriaProps {
     criteriaKey?: CriteriaKey;
+    onClickSearch?: (filters: any) => void;
 }
 
-export default function Criteria({ criteriaKey = 'dashboard' }: CriteriaProps) {
+export default function Criteria({ criteriaKey = 'dashboard', onClickSearch }: CriteriaProps) {
     const isInitialized = useRef(false);
-    const [groups, setGroups] = useState<CriteriaGroupModel[] | null>(null);
+    const [filter, setFilter] = useState<GetFilterResponse | null>(null);
+    const [defaultFilter, setDefaultFilter] = useState<GetFilterResponse | null>(null);
 
     useEffect(() => {
         if (isInitialized.current) return;
@@ -20,83 +24,199 @@ export default function Criteria({ criteriaKey = 'dashboard' }: CriteriaProps) {
         }).then((response) => {
             console.log('Filter Response:', response.data);
             const data = response.data as GetFilterResponse;
-            setGroups(data.group);
+            setFilter(data);
+            setDefaultFilter(data);
         });
 
         isInitialized.current = true;
     }, [criteriaKey]);
 
-    const renderInput = (criterion: CriteriaModel) => {
-        const inputClass = "mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm";
-        
+    const onChangeHandler = (criterionName: string, value: any) => {
+        setFilter((prevFilter) => { 
+            if (!prevFilter) return prevFilter;
+
+            const newValue = { ...(prevFilter.value || {}), [criterionName]: value };
+            return { ...prevFilter, value: newValue };
+        });
+    };
+
+    const onChangeDateRangeHandler = (criterionName: string, range: {from?: string, to?: string}) => {
+        setFilter((prevFilter) => {
+            if (!prevFilter) return prevFilter;
+
+            let from: string;
+            let to: string;
+            
+            if (range.from) {
+                from = moment(range.from).format('YYYY-MM-DD');
+            } else {
+                const existingValue = prevFilter.value?.[criterionName];
+                from = existingValue?.from ? moment(existingValue.from).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD');
+            }
+
+            if (range.to) {
+                to = moment(range.to).format('YYYY-MM-DD');
+            } else {
+                const existingValue = prevFilter.value?.[criterionName];
+                to = existingValue?.to ? moment(existingValue.to).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD');
+            }
+
+            // if new from is greater than to, set to to from
+            console.log('Date Range Change:', { criterionName, from, to });
+            if (!!range.from && from > to) {
+                to = from;
+            }
+
+            if (!!range.to &&to < from) {
+                from = to;
+            }
+
+            const newValue = { ...(prevFilter.value || {}), [criterionName]: { from, to } };
+            return { ...prevFilter, value: newValue };
+        });
+    };
+
+    const renderInput = (criterion: MetaModel, value: any) => {
         switch (criterion.type) {
             case 'dropdown':
                 return (
-                    <select className={inputClass}>
-                        {criterion.data_source && criterion.data_source.length > 0 && criterion.data_source[0].value === '' ? (
-                            <>
-                                {criterion.data_source.map((option) => (
-                                    <option key={option.value} value={option.value}>
+                    <FormControl fullWidth size="small">
+                        <Select 
+                            value={value || ''} 
+                            onChange={(e) => onChangeHandler(criterion.name, e.target.value)}
+                            displayEmpty
+                        >
+                            {criterion.data_source_key &&
+                            filter?.data_source[criterion.data_source_key] &&
+                            filter.data_source[criterion.data_source_key].length > 0 &&
+                            filter.data_source[criterion.data_source_key][0].value === ''
+                                ? filter.data_source[criterion.data_source_key].map((option) => (
+                                    <MenuItem key={option.value} value={option.value}>
                                         {option.text}
-                                    </option>
-                                ))}
-                            </>
-                        ) : (
-                            <>
-                                <option value="">Select {criterion.display_expr}</option>
-                                {criterion.data_source?.map((option) => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.text}
-                                    </option>
-                                ))}
-                            </>
-                        )}
-                    </select>
+                                    </MenuItem>
+                                ))
+                                : [
+                                    <MenuItem key="" value="">Select {criterion.display_expr}</MenuItem>,
+                                    ...(filter?.data_source[criterion.data_source_key || '']?.map((option) => (
+                                        <MenuItem key={option.value} value={option.value}>
+                                            {option.text}
+                                        </MenuItem>
+                                    )) || [])
+                                ]}
+                        </Select>
+                    </FormControl>
                 );
             case 'date':
-                return <input type="date" className={inputClass} />;
+                return (
+                    <TextField 
+                        type="date" 
+                        size="small" 
+                        fullWidth 
+                        value={value || ''} 
+                        onChange={(e) => onChangeHandler(criterion.name, e.target.value)}
+                        InputLabelProps={{ shrink: true }}
+                    />
+                );
             case 'date_range':
                 return (
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                         <div className="flex-1">
                             <label className="block text-xs text-gray-600 mb-1">From</label>
-                            <input type="date" className={inputClass} defaultValue="2025-08-01" />
+                            <TextField 
+                                type="date" 
+                                size="small" 
+                                fullWidth 
+                                value={value?.from || ''} 
+                                onChange={(e) => onChangeDateRangeHandler(criterion.name, { from: e.target.value })}
+                                InputLabelProps={{ shrink: true }}
+                            />
                         </div>
                         <div className="flex-1">
                             <label className="block text-xs text-gray-600 mb-1">To</label>
-                            <input type="date" className={inputClass} defaultValue="2026-08-01" />
+                            <TextField 
+                                type="date" 
+                                size="small" 
+                                fullWidth 
+                                value={value?.to || ''} 
+                                onChange={(e) => onChangeDateRangeHandler(criterion.name, { to: e.target.value })}
+                                InputLabelProps={{ shrink: true }}
+                            />
                         </div>
                     </div>
                 );
             case 'text':
-                return <input type="text" className={inputClass} />;
+                return (
+                    <TextField 
+                        type="text" 
+                        size="small" 
+                        fullWidth 
+                        value={value || ''} 
+                        onChange={(e) => onChangeHandler(criterion.name, e.target.value)}
+                    />
+                );
             case 'number':
-                return <input type="number" className={inputClass} />;
+                return (
+                    <TextField 
+                        type="number" 
+                        size="small" 
+                        fullWidth 
+                        value={value || ''} 
+                        onChange={(e) => onChangeHandler(criterion.name, e.target.value)}
+                    />
+                );
             default:
                 return null;
         }
     };
 
+    const handleSearchClick = () => {
+        if (onClickSearch) {
+            onClickSearch(filter);
+        }
+    };
+
+    const handleClearClick = () => {
+        if (!defaultFilter) return;
+        
+        // Deep clone using JSON to ensure new object reference
+        const resetFilter: GetFilterResponse = JSON.parse(JSON.stringify(defaultFilter));
+        setFilter(resetFilter);
+    }
+
     return (
         <>
-            {groups?.map((group, groupIndex) => (
-                <div key={groupIndex} >
+            {filter?.meta_group.map((group, groupIndex) => (
+                <div key={groupIndex}>
                     <h3 className="text-lg font-semibold mb-4">{group.text}</h3>
                     <div className={`grid grid-cols-1 md:grid-cols-${group.md_col} lg:grid-cols-${group.lg_col} gap-4`}>
-                        {group.criteria.map((criterion) => (
-                            <div 
-                                key={criterion.name} 
-                                className={criterion.col_span > 1 ? `md:col-span-${criterion.col_span} lg:col-span-${criterion.col_span}` : ''}
-                            >
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    {criterion.display_expr}
-                                </label>
-                                {renderInput(criterion)}
+                        {group.meta.map((criterion) => (
+                            <div
+                                key={criterion.name}
+                                className={
+                                    criterion.col_span > 1 ? `md:col-span-${criterion.col_span} lg:col-span-${criterion.col_span}` : ''
+                                }>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{criterion.display_expr}</label>
+                                {renderInput(criterion, filter.value?.[criterion.name])}
                             </div>
                         ))}
                     </div>
                 </div>
             ))}
+            {/* search & clear button alignment right on md and larger screens sm left */}
+            <div className="flex md:justify-end space-x-2">
+                <Button
+                    onClick={handleSearchClick}
+                    variant="contained"
+                    color="primary">
+                    Search
+                </Button>
+                <Button
+                    onClick={handleClearClick}
+                    variant="outlined"
+                    color="secondary">
+                    Clear
+                </Button>
+            </div>
         </>
     );
 }
