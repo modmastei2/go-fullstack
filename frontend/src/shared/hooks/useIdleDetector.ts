@@ -4,17 +4,28 @@ interface UseIdleDetectorOptions {
     idleTimeout?: number;
     onIdle?: () => void;
     onActive?: () => void;
+    throttleDelaySec?: number;
 }
 
 const useIdleDetector = ({
     idleTimeout = 15 * 60 * 1000, // 15 นาที (default)
     onIdle,
     onActive,
+    throttleDelaySec = 1 * 1000
 }: UseIdleDetectorOptions = {}) => {
 
     const [isIdle, setIsIdle] = useState(false);
     const timeoutRef = useRef<number | null>(null);
+    const throttleRef = useRef<number | null>(null);
     const lastActivityRef  = useRef<number>(Date.now());
+
+    const onIdleRef = useRef(onIdle);
+    const onActiveRef = useRef(onActive);
+
+    useEffect(() => {
+        onIdleRef.current = onIdle;
+        onActiveRef.current = onActive;
+    }, [onIdle, onActive]);
 
     const resetTimer = useCallback(() => {
         if (timeoutRef.current) {
@@ -25,18 +36,18 @@ const useIdleDetector = ({
 
         if (isIdle) {
             setIsIdle(false);
-            onActive?.();
+            onActiveRef.current?.();
         }
 
         timeoutRef.current = setTimeout(() => {
             setIsIdle(true);
-            onIdle?.();
+            onIdleRef.current?.();
         }, idleTimeout);
         
-    }, [idleTimeout, isIdle, onIdle, onActive]);
+    }, [idleTimeout, isIdle]);
 
     useEffect(() => {
-              // Events ที่จะ reset timer
+        // Events ที่จะ reset timer
         const events = [
             'mousedown',
             'mousemove',
@@ -47,38 +58,38 @@ const useIdleDetector = ({
         ];
 
         // Throttle เพื่อไม่ให้ resetTimer ถูกเรียกบ่อยเกินไป
-        let throttleTimer: number | null = null;
         const throttledReset = () => {
-            if(!throttleTimer) {
-                throttleTimer = setTimeout(() => {
+            if (!throttleRef.current) {
+                throttleRef.current = setTimeout(() => {
                     resetTimer();
-                    throttleTimer = null;
-                }, 1000) // throttle 1 วินาที
+                    throttleRef.current = null;
+                }, throttleDelaySec);
             }
-        };
+        }
 
-        events.forEach(events => {
-            window.addEventListener(events, throttledReset);
+        // register event
+        events.forEach(event => {
+            window.addEventListener(event, throttledReset, { passive: true});
         })
 
         // เริ่มต้น timer
         resetTimer();
 
         return () => {
-            events.forEach(events => {
-                window.removeEventListener(events, throttledReset);
+            events.forEach(event => {
+                window.removeEventListener(event, throttledReset);
             });
 
             if(timeoutRef.current) {
                 clearTimeout(timeoutRef.current);
             }
 
-            if(throttleTimer) {
-                clearTimeout(throttleTimer);
+            if(throttleRef.current) {
+                clearTimeout(throttleRef.current);
             }
         }
         
-    }, [resetTimer]);
+    }, [resetTimer, throttleDelaySec]);
 
     return {
         isIdle,
