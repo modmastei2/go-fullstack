@@ -19,7 +19,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     useIdleDetector({
         idleTimeout: IDLE_TIMEOUT,
-        onIdle: async () => {
+        onIdled: async () => {
             if (user && !isLocked) {
                 console.log('User is idle. Locking session...');
                 await lockSession();
