@@ -3,6 +3,9 @@ export default {
   content: ['./index.html', './src/**/*.{html,ts,tsx}'],
   theme: {
     extend: {
+      // colors: {
+      //   prisma: 'rgb(var(--color-prisma) / <alpha-value>)',
+      // },
       animation: {
         'text-flow': 'key-text-flow 4s',
         'shine': 'shine 1.5s linear infinite',

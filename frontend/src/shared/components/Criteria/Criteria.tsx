@@ -3,6 +3,7 @@ import { TextField, Select, MenuItem, FormControl, Button } from '@mui/material'
 import type { GetFilterResponse, MetaModel } from './CriteriaModel';
 import api from '../../handlers/api.handler';
 import moment from 'moment';
+import layoutMap from '../../constants/layout';
 
 export type CriteriaKey = 'dashboard' | 'historical';
 
@@ -120,6 +121,7 @@ export default function Criteria({ criteriaKey = 'dashboard', onClickSearch }: C
             case 'date_range':
                 return (
                     <div className="flex flex-wrap gap-2">
+                        <div className={`${layoutMap.mapGap[8]} ${layoutMap.mapGridCol[12]}`}></div>
                         <div className="flex-1">
                             <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">From</label>
                             <TextField 

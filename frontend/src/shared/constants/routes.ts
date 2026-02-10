@@ -16,6 +16,12 @@ export class HistoricalRoute {
     static historicalFullPath: string = `${HistoricalRoute.prefix}/${HistoricalRoute.historical}`;
 }
 
+export class InformHubRoute {
+    static prefix = 'inform-hub'
+    static inform = 'inform';
+    static informFullPath: string = `${InformHubRoute.prefix}/${InformHubRoute.inform}`;
+}
+
 export class CommonRoute {
     static unauthorized = '/unauthorized';
     static notFound = '/not-found';

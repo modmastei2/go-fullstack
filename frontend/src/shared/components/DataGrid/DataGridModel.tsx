@@ -11,17 +11,18 @@ export interface ColumnFilter {
 export interface ColumnMeta {
     field: string;
     header: string;
-    type: 'text' | 'number' | 'date' | 'boolean' | 'select';
+    type: 'text' | 'number' | 'date' | 'boolean' | 'select' | 'link';
     width?: number;
     sortable?: boolean;
     filterable?: boolean;
     align?: 'left' | 'center' | 'right';
     format?: string; // For date/number formatting
     dataSourceKey?: string; // Reference to data source for select type
+    linkField?: string; // Reference to link URL field (for link type)
     description?: string; // Description shown in column selector
     frozen?: boolean; // Fix/freeze column position
     editable?: boolean; // Allow editing cell value
-    category?: 'core' | 'bond' | 'mf' | 'sn'; // Category for grouping
+    category?: 'core' | 'bond' | 'mf' | 'sn' | 'optional'; // Category for grouping
 }
 
 // Column preset model
@@ -49,7 +50,7 @@ export interface DataGridConfig {
 }
 
 // Row data type (generic)
-export type RowData = { [key: string]: any };
+export type RowData = { id?: string; [key: string]: any };
 
 // Pagination configuration
 export interface PaginationConfig {
@@ -57,3 +58,6 @@ export interface PaginationConfig {
     pageSize: number; // Rows per page
     pageSizeOptions?: number[]; // Available page size options
 }
+
+// Alias for backward compatibility
+export type ColumnDef = ColumnMeta;

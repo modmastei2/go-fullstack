@@ -11,8 +11,9 @@ import Register from './modules/pre-login/login/pages/Register';
 import PublicGuard from './shared/guards/PublicGuard';
 import RequireAuth from './shared/guards/RequireAuth';
 import DevComponents from './modules/post-login/dev/pages/dev.components';
-import { HistoricalRoute } from './shared/constants/routes';
+import { HistoricalRoute, InformHubRoute } from './shared/constants/routes';
 import Historical from './modules/post-login/historical/pages/Historical';
+import Inform from './modules/post-login/inform-hub/pages/Inform';
 
 const router = createBrowserRouter([
     {
@@ -32,6 +33,15 @@ const router = createBrowserRouter([
                             {
                                 path: HistoricalRoute.historical,
                                 element: <Historical />
+                            }
+                        ]
+                    },
+                    {
+                        path: InformHubRoute.prefix,
+                        children: [
+                            {
+                                path: InformHubRoute.inform,
+                                element: <Inform />
                             }
                         ]
                     },

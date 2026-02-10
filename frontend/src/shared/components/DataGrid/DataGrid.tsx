@@ -15,6 +15,7 @@ import {
     MenuItem,
     TablePagination,
     FormControl,
+    Link,
 } from '@mui/material';
 import moment from 'moment';
 import type { ColumnMeta, DataSourceModel, RowData, FilterOperator, ColumnFilter } from './DataGridModel';
@@ -108,7 +109,7 @@ export default function DataGrid({
         }
     };
 
-    const formatCellValue = useCallback((value: any, column: ColumnMeta): string => {
+    const formatCellValue = useCallback((value: any, column: ColumnMeta, row?: RowData): string | React.ReactElement => {
         if (value === null || value === undefined) return '-';
 
         switch (column.type) {
@@ -130,6 +131,26 @@ export default function DataGrid({
                     return option?.text || value;
                 }
                 return value;
+            case 'link':
+                if (row && column.linkField && row[column.linkField]) {
+                    return (
+                        <Link 
+                            href={row[column.linkField]} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            sx={{ 
+                                color: 'primary.main',
+                                textDecoration: 'none',
+                                '&:hover': {
+                                    textDecoration: 'underline'
+                                }
+                            }}
+                        >
+                            {value}
+                        </Link>
+                    );
+                }
+                return value;
             default:
                 return value.toString();
         }
@@ -138,7 +159,14 @@ export default function DataGrid({
     const applyFilter = useCallback((value: any, filter: ColumnFilter, column: ColumnMeta): boolean => {
         if (!filter.value) return true;
 
-        const cellValue = value === null || value === undefined ? '' : formatCellValue(value, column).toLowerCase();
+        // Convert value to string for comparison (handle link type specially)
+        let cellValue = '';
+        if (column.type === 'link') {
+            // For link type, use the text value, not the link URL
+            cellValue = value === null || value === undefined ? '' : String(value).toLowerCase();
+        } else {
+            cellValue = value === null || value === undefined ? '' : formatCellValue(value, column).toString().toLowerCase();
+        }
         const filterValue = filter.value.toLowerCase();
 
         switch (filter.operator) {
@@ -213,6 +241,15 @@ export default function DataGrid({
         const value = row[column.field];
         const isEditing = editingCell?.rowId === rowId && editingCell?.field === column.field;
 
+        // Link type cannot be edited
+        if (column.type === 'link') {
+            return (
+                <Box>
+                    {formatCellValue(value, column, row)}
+                </Box>
+            );
+        }
+
         if (isEditing && column.editable) {
             if (column.type === 'select' && column.dataSourceKey && dataSource[column.dataSourceKey]) {
                 return (
@@ -254,7 +291,7 @@ export default function DataGrid({
                     '&:hover': column.editable ? { backgroundColor: 'action.hover' } : {},
                 }}
             >
-                {formatCellValue(value, column)}
+                {formatCellValue(value, column, row)}
             </Box>
         );
     };

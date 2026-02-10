@@ -2,6 +2,10 @@
 @import "tailwindcss-animated";
 @config "../tailwind.config.ts";
 
+@theme {
+    --color-prisma-100: 255, 0, 0;
+}
+
 /* Smooth theme transition */
 :root {
     transition: background-color 0.3s ease, color 0.3s ease;

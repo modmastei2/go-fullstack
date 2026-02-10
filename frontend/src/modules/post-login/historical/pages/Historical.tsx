@@ -4,746 +4,233 @@ import DataGrid from '../../../../shared/components/DataGrid/DataGrid';
 import ColumnSelector from '../../../../shared/components/DataGrid/ColumnSelector';
 import DataGridPremiumWrapper from '../../../../shared/components/DataGrid/DataGridPremiumWrapper';
 import ColumnSelectorPremium from '../../../../shared/components/DataGrid/ColumnSelectorPremium';
-import type { DataGridConfig, RowData } from '../../../../shared/components/DataGrid/DataGridModel';
+import type { DataGridConfig, RowData, ColumnDef } from '../../../../shared/components/DataGrid/DataGridModel';
 import type { ColumnDefPremium, DataGridPremiumConfig } from '../../../../shared/components/DataGrid/DataGridPremiumModel';
 
-export default function Historical() {
+// Types for API schema
+interface TableSectionColumn {
+    col_index: number;
+    col_type: string;
+    col_header_text: string;
+    col_value_field: string;
+    col_link_field: string | null;
+    col_freeze: boolean;
+    col_show: boolean;
+    col_format: string | null;
+    attrs: {
+        header: {
+            class: string;
+            style: string | null;
+        };
+        cell: {
+            class: string;
+            style: string | null;
+        };
+    };
+}
 
-    // Mock grid configuration
-    const gridConfig: DataGridConfig = {
-        meta: [
-            // Core columns (always visible, frozen)
-            {
-                field: 'client_code',
-                header: 'Client Code',
-                type: 'text',
-                width: 120,
-                sortable: true,
-                filterable: true,
-                frozen: true,
-                editable: false,
-                category: 'core',
-            },
-            {
-                field: 'client_name',
-                header: 'Client Name',
-                type: 'text',
-                width: 200,
-                sortable: true,
-                filterable: true,
-                frozen: true,
-                editable: true,
-                category: 'core',
-            },
-            {
-                field: 'client_type',
-                header: 'Client Type',
-                type: 'select',
-                width: 150,
-                sortable: true,
-                filterable: true,
-                frozen: true,
-                editable: true,
-                dataSourceKey: 'client_types',
-                category: 'core',
-            },
+interface ApiSchema {
+    table_section: TableSectionColumn[];
+    cols_data: Record<string, any>[];
+}
 
-            // Bond columns
-            {
-                field: 'bond_holdings',
-                header: 'Bond Holdings',
-                type: 'number',
-                width: 150,
-                align: 'right',
-                sortable: true,
-                filterable: true,
-                editable: true,
-                category: 'bond',
-            },
-            {
-                field: 'bond_yield',
-                header: 'Bond Yield (%)',
-                type: 'number',
-                width: 130,
-                align: 'right',
-                sortable: true,
-                filterable: true,
-                editable: true,
-                category: 'bond',
-            },
-            {
-                field: 'bond_maturity',
-                header: 'Bond Maturity',
-                type: 'date',
-                width: 130,
-                sortable: true,
-                filterable: true,
-                editable: true,
-                format: 'DD/MM/YYYY',
-                category: 'bond',
-            },
-            {
-                field: 'bond_coupon',
-                header: 'Coupon Rate (%)',
-                type: 'number',
-                width: 140,
-                align: 'right',
-                sortable: true,
-                filterable: true,
-                editable: true,
-                category: 'bond',
-            },
+// Helper function to convert API schema to DataGrid config
+function convertApiSchemaToGridConfig(apiSchema: ApiSchema): { config: DataGridConfig; rows: RowData[] } {
+    const columns: ColumnDef[] = apiSchema.table_section
+        .filter((col) => col.col_show) // Only include visible columns
+        .map((col) => {
+            // Determine column type
+            let type: ColumnDef['type'] = 'text';
+            const colType = col.col_type.toLowerCase();
+            
+            if (colType === 'number' || colType === 'numeric') {
+                type = 'number';
+            } else if (colType === 'date' || colType === 'datetime') {
+                type = 'date';
+            } else if (colType === 'link') {
+                type = 'link';
+            } else if (colType === 'select' || colType === 'dropdown') {
+                type = 'select';
+            }
 
-            // Mutual Fund columns
-            {
-                field: 'mf_holdings',
-                header: 'MF Holdings',
-                type: 'number',
-                width: 150,
-                align: 'right',
-                sortable: true,
-                filterable: true,
-                editable: true,
-                category: 'mf',
-            },
-            {
-                field: 'mf_nav',
-                header: 'MF NAV',
-                type: 'number',
-                width: 120,
-                align: 'right',
-                sortable: true,
-                filterable: true,
-                editable: true,
-                category: 'mf',
-            },
-            {
-                field: 'mf_return',
-                header: 'MF Return (%)',
-                type: 'number',
-                width: 130,
-                align: 'right',
-                sortable: true,
-                filterable: true,
-                editable: true,
-                category: 'mf',
-            },
-            {
-                field: 'mf_risk_level',
-                header: 'Risk Level',
-                type: 'select',
-                width: 120,
-                sortable: true,
-                filterable: true,
-                editable: true,
-                dataSourceKey: 'risk_levels',
-                category: 'mf',
-            },
+            // Extract alignment from cell style
+            let align: 'left' | 'center' | 'right' | undefined = undefined;
+            if (col.attrs.cell.style) {
+                if (col.attrs.cell.style.includes('text-align:right')) {
+                    align = 'right';
+                } else if (col.attrs.cell.style.includes('text-align:center')) {
+                    align = 'center';
+                } else if (col.attrs.cell.style.includes('text-align:left')) {
+                    align = 'left';
+                }
+            }
 
-            // Structure Note columns
-            {
-                field: 'sn_holdings',
-                header: 'SN Holdings',
-                type: 'number',
-                width: 150,
-                align: 'right',
+            const columnDef: ColumnDef = {
+                field: col.col_value_field,
+                header: col.col_header_text,
+                type: type,
+                width: 150, // Default width
                 sortable: true,
                 filterable: true,
-                editable: true,
-                category: 'sn',
-            },
-            {
-                field: 'sn_underlying',
-                header: 'Underlying',
-                type: 'text',
-                width: 150,
-                sortable: true,
-                filterable: true,
-                editable: true,
-                category: 'sn',
-            },
-            {
-                field: 'sn_protection',
-                header: 'Protection (%)',
-                type: 'number',
-                width: 140,
-                align: 'right',
-                sortable: true,
-                filterable: true,
-                editable: true,
-                category: 'sn',
-            },
-            {
-                field: 'sn_maturity',
-                header: 'SN Maturity',
-                type: 'date',
-                width: 130,
-                sortable: true,
-                filterable: true,
-                editable: true,
-                format: 'DD/MM/YYYY',
-                category: 'sn',
-            },
-        ],
-        presets: [], // No longer needed - using category-based selection
-        data_source: {
-            client_types: [
-                { text: 'Individual', value: 'individual' },
-                { text: 'Corporate', value: 'corporate' },
-                { text: 'Institutional', value: 'institutional' },
-            ],
-            risk_levels: [
-                { text: 'Low', value: 'low' },
-                { text: 'Medium', value: 'medium' },
-                { text: 'High', value: 'high' },
-                { text: 'Very High', value: 'very_high' },
-            ],
-        },
+                frozen: col.col_freeze,
+                editable: false, // Default to not editable
+                category: col.col_freeze ? 'core' : 'optional',
+            };
+
+            // Add alignment if specified
+            if (align) {
+                columnDef.align = align;
+            }
+
+            // Add link field for link type columns
+            if (type === 'link' && col.col_link_field) {
+                columnDef.linkField = col.col_link_field;
+            }
+
+            // Add format if specified
+            if (col.col_format) {
+                columnDef.format = col.col_format;
+            }
+
+            return columnDef;
+        })
+        .sort((a, b) => {
+            // Sort by original col_index
+            const aIndex = apiSchema.table_section.find((c) => c.col_value_field === a.field)?.col_index || 0;
+            const bIndex = apiSchema.table_section.find((c) => c.col_value_field === b.field)?.col_index || 0;
+            return aIndex - bIndex;
+        });
+
+    // Convert rows data (add id field if not present)
+    const rows: RowData[] = apiSchema.cols_data.map((row, index) => ({
+        id: row.id || `row_${index + 1}`,
+        ...row,
+    }));
+
+    const config: DataGridConfig = {
+        meta: columns,
+        presets: [],
+        data_source: {},
     };
 
-    // Mock data - Extended to 30 rows for testing
-    const mockRows: RowData[] = [
-        {
-            id: '1',
-            client_code: 'CL001',
-            client_name: 'John Anderson',
-            client_type: 'individual',
-            bond_holdings: 1500000,
-            bond_yield: 4.5,
-            bond_maturity: '2028-12-31',
-            bond_coupon: 4.0,
-            mf_holdings: 850000,
-            mf_nav: 15.75,
-            mf_return: 8.2,
-            mf_risk_level: 'medium',
-            sn_holdings: 2000000,
-            sn_underlying: 'S&P 500',
-            sn_protection: 90,
-            sn_maturity: '2027-06-30',
-        },
-        {
-            id: '2',
-            client_code: 'CL002',
-            client_name: 'ABC Corporation Ltd.',
-            client_type: 'corporate',
-            bond_holdings: 5000000,
-            bond_yield: 5.2,
-            bond_maturity: '2029-03-15',
-            bond_coupon: 5.0,
-            mf_holdings: 3000000,
-            mf_nav: 22.4,
-            mf_return: 12.5,
-            mf_risk_level: 'high',
-            sn_holdings: null,
-            sn_underlying: null,
-            sn_protection: null,
-            sn_maturity: null,
-        },
-        {
-            id: '3',
-            client_code: 'CL003',
-            client_name: 'Sarah Thompson',
-            client_type: 'individual',
-            bond_holdings: 800000,
-            bond_yield: 3.8,
-            bond_maturity: '2026-09-30',
-            bond_coupon: 3.5,
-            mf_holdings: 1200000,
-            mf_nav: 18.9,
-            mf_return: 6.8,
-            mf_risk_level: 'low',
-            sn_holdings: 1500000,
-            sn_underlying: 'NASDAQ',
-            sn_protection: 85,
-            sn_maturity: '2026-12-31',
-        },
-        {
-            id: '4',
-            client_code: 'CL004',
-            client_name: 'XYZ Pension Fund',
-            client_type: 'institutional',
-            bond_holdings: 10000000,
-            bond_yield: 4.8,
-            bond_maturity: '2030-06-30',
-            bond_coupon: 4.75,
-            mf_holdings: 8000000,
-            mf_nav: 25.3,
-            mf_return: 10.3,
-            mf_risk_level: 'medium',
-            sn_holdings: 5000000,
-            sn_underlying: 'Hang Seng',
-            sn_protection: 95,
-            sn_maturity: '2028-03-31',
-        },
-        {
-            id: '5',
-            client_code: 'CL005',
-            client_name: 'Michael Chen',
-            client_type: 'individual',
-            bond_holdings: 2500000,
-            bond_yield: 5.5,
-            bond_maturity: '2027-12-31',
-            bond_coupon: 5.25,
-            mf_holdings: null,
-            mf_nav: null,
-            mf_return: null,
-            mf_risk_level: null,
-            sn_holdings: 3000000,
-            sn_underlying: 'Euro Stoxx 50',
-            sn_protection: 100,
-            sn_maturity: '2029-06-30',
-        },
-        {
-            id: '6',
-            client_code: 'CL006',
-            client_name: 'Global Tech Inc.',
-            client_type: 'corporate',
-            bond_holdings: 7500000,
-            bond_yield: 4.2,
-            bond_maturity: '2029-08-15',
-            bond_coupon: 4.0,
-            mf_holdings: 4500000,
-            mf_nav: 19.85,
-            mf_return: 9.7,
-            mf_risk_level: 'high',
-            sn_holdings: 3500000,
-            sn_underlying: 'FTSE 100',
-            sn_protection: 88,
-            sn_maturity: '2027-12-31',
-        },
-        {
-            id: '7',
-            client_code: 'CL007',
-            client_name: 'Emily Rodriguez',
-            client_type: 'individual',
-            bond_holdings: 1200000,
-            bond_yield: 3.5,
-            bond_maturity: '2026-11-30',
-            bond_coupon: 3.25,
-            mf_holdings: 950000,
-            mf_nav: 16.4,
-            mf_return: 7.5,
-            mf_risk_level: 'low',
-            sn_holdings: null,
-            sn_underlying: null,
-            sn_protection: null,
-            sn_maturity: null,
-        },
-        {
-            id: '8',
-            client_code: 'CL008',
-            client_name: 'National Insurance Co.',
-            client_type: 'institutional',
-            bond_holdings: 15000000,
-            bond_yield: 5.0,
-            bond_maturity: '2031-03-31',
-            bond_coupon: 4.9,
-            mf_holdings: 12000000,
-            mf_nav: 28.75,
-            mf_return: 11.2,
-            mf_risk_level: 'medium',
-            sn_holdings: 8000000,
-            sn_underlying: 'Nikkei 225',
-            sn_protection: 92,
-            sn_maturity: '2029-09-30',
-        },
-        {
-            id: '9',
-            client_code: 'CL009',
-            client_name: 'David Kim',
-            client_type: 'individual',
-            bond_holdings: 600000,
-            bond_yield: 3.2,
-            bond_maturity: '2025-12-31',
-            bond_coupon: 3.0,
-            mf_holdings: 1500000,
-            mf_nav: 17.2,
-            mf_return: 8.9,
-            mf_risk_level: 'medium',
-            sn_holdings: 1000000,
-            sn_underlying: 'DAX',
-            sn_protection: 80,
-            sn_maturity: '2026-06-30',
-        },
-        {
-            id: '10',
-            client_code: 'CL010',
-            client_name: 'Beta Investments',
-            client_type: 'corporate',
-            bond_holdings: 3500000,
-            bond_yield: 4.7,
-            bond_maturity: '2028-09-30',
-            bond_coupon: 4.5,
-            mf_holdings: 2800000,
-            mf_nav: 21.1,
-            mf_return: 10.8,
-            mf_risk_level: 'high',
-            sn_holdings: 4000000,
-            sn_underlying: 'CAC 40',
-            sn_protection: 93,
-            sn_maturity: '2028-12-31',
-        },
-        {
-            id: '11',
-            client_code: 'CL011',
-            client_name: 'Maria Santos',
-            client_type: 'individual',
-            bond_holdings: 950000,
-            bond_yield: 3.9,
-            bond_maturity: '2027-03-31',
-            bond_coupon: 3.75,
-            mf_holdings: 1100000,
-            mf_nav: 18.5,
-            mf_return: 7.8,
-            mf_risk_level: 'low',
-            sn_holdings: 1800000,
-            sn_underlying: 'IBEX 35',
-            sn_protection: 87,
-            sn_maturity: '2027-09-30',
-        },
-        {
-            id: '12',
-            client_code: 'CL012',
-            client_name: 'Delta Pension Trust',
-            client_type: 'institutional',
-            bond_holdings: 20000000,
-            bond_yield: 5.3,
-            bond_maturity: '2032-06-30',
-            bond_coupon: 5.2,
-            mf_holdings: 15000000,
-            mf_nav: 30.25,
-            mf_return: 12.1,
-            mf_risk_level: 'medium',
-            sn_holdings: 10000000,
-            sn_underlying: 'SMI',
-            sn_protection: 96,
-            sn_maturity: '2030-03-31',
-        },
-        {
-            id: '13',
-            client_code: 'CL013',
-            client_name: 'Robert Lee',
-            client_type: 'individual',
-            bond_holdings: 1800000,
-            bond_yield: 4.3,
-            bond_maturity: '2028-06-30',
-            bond_coupon: 4.1,
-            mf_holdings: null,
-            mf_nav: null,
-            mf_return: null,
-            mf_risk_level: null,
-            sn_holdings: 2500000,
-            sn_underlying: 'ASX 200',
-            sn_protection: 89,
-            sn_maturity: '2028-09-30',
-        },
-        {
-            id: '14',
-            client_code: 'CL014',
-            client_name: 'Gamma Holdings',
-            client_type: 'corporate',
-            bond_holdings: 6000000,
-            bond_yield: 4.9,
-            bond_maturity: '2029-12-31',
-            bond_coupon: 4.8,
-            mf_holdings: 5000000,
-            mf_nav: 23.6,
-            mf_return: 11.5,
-            mf_risk_level: 'high',
-            sn_holdings: null,
-            sn_underlying: null,
-            sn_protection: null,
-            sn_maturity: null,
-        },
-        {
-            id: '15',
-            client_code: 'CL015',
-            client_name: 'Lisa Wang',
-            client_type: 'individual',
-            bond_holdings: 750000,
-            bond_yield: 3.6,
-            bond_maturity: '2026-06-30',
-            bond_coupon: 3.4,
-            mf_holdings: 1300000,
-            mf_nav: 19.3,
-            mf_return: 8.5,
-            mf_risk_level: 'medium',
-            sn_holdings: 900000,
-            sn_underlying: 'Kospi',
-            sn_protection: 82,
-            sn_maturity: '2026-09-30',
-        },
-        {
-            id: '16',
-            client_code: 'CL016',
-            client_name: 'Epsilon Insurance',
-            client_type: 'institutional',
-            bond_holdings: 18000000,
-            bond_yield: 5.1,
-            bond_maturity: '2031-09-30',
-            bond_coupon: 5.0,
-            mf_holdings: 14000000,
-            mf_nav: 27.9,
-            mf_return: 10.9,
-            mf_risk_level: 'low',
-            sn_holdings: 9000000,
-            sn_underlying: 'TSX',
-            sn_protection: 94,
-            sn_maturity: '2029-12-31',
-        },
-        {
-            id: '17',
-            client_code: 'CL017',
-            client_name: 'James Brown',
-            client_type: 'individual',
-            bond_holdings: 1400000,
-            bond_yield: 4.1,
-            bond_maturity: '2027-09-30',
-            bond_coupon: 3.9,
-            mf_holdings: 1600000,
-            mf_nav: 20.15,
-            mf_return: 9.3,
-            mf_risk_level: 'medium',
-            sn_holdings: 2200000,
-            sn_underlying: 'BEL 20',
-            sn_protection: 86,
-            sn_maturity: '2027-12-31',
-        },
-        {
-            id: '18',
-            client_code: 'CL018',
-            client_name: 'Theta Capital',
-            client_type: 'corporate',
-            bond_holdings: 8500000,
-            bond_yield: 5.4,
-            bond_maturity: '2030-03-31',
-            bond_coupon: 5.3,
-            mf_holdings: 6500000,
-            mf_nav: 24.8,
-            mf_return: 13.2,
-            mf_risk_level: 'very_high',
-            sn_holdings: 5500000,
-            sn_underlying: 'AEX',
-            sn_protection: 91,
-            sn_maturity: '2029-06-30',
-        },
-        {
-            id: '19',
-            client_code: 'CL019',
-            client_name: 'Anna Martinez',
-            client_type: 'individual',
-            bond_holdings: 1100000,
-            bond_yield: 3.7,
-            bond_maturity: '2026-12-31',
-            bond_coupon: 3.6,
-            mf_holdings: 900000,
-            mf_nav: 17.85,
-            mf_return: 7.2,
-            mf_risk_level: 'low',
-            sn_holdings: 1300000,
-            sn_underlying: 'OMX',
-            sn_protection: 84,
-            sn_maturity: '2027-03-31',
-        },
-        {
-            id: '20',
-            client_code: 'CL020',
-            client_name: 'Zeta Fund Management',
-            client_type: 'institutional',
-            bond_holdings: 25000000,
-            bond_yield: 5.5,
-            bond_maturity: '2033-12-31',
-            bond_coupon: 5.4,
-            mf_holdings: 20000000,
-            mf_nav: 32.4,
-            mf_return: 13.5,
-            mf_risk_level: 'high',
-            sn_holdings: 15000000,
-            sn_underlying: 'PSI 20',
-            sn_protection: 98,
-            sn_maturity: '2031-06-30',
-        },
-        {
-            id: '21',
-            client_code: 'CL021',
-            client_name: 'Kevin Johnson',
-            client_type: 'individual',
-            bond_holdings: 850000,
-            bond_yield: 3.4,
-            bond_maturity: '2026-03-31',
-            bond_coupon: 3.2,
-            mf_holdings: 1050000,
-            mf_nav: 16.75,
-            mf_return: 6.9,
-            mf_risk_level: 'low',
-            sn_holdings: null,
-            sn_underlying: null,
-            sn_protection: null,
-            sn_maturity: null,
-        },
-        {
-            id: '22',
-            client_code: 'CL022',
-            client_name: 'Iota Enterprises',
-            client_type: 'corporate',
-            bond_holdings: 4500000,
-            bond_yield: 4.6,
-            bond_maturity: '2028-12-31',
-            bond_coupon: 4.4,
-            mf_holdings: 3500000,
-            mf_nav: 22.95,
-            mf_return: 10.5,
-            mf_risk_level: 'high',
-            sn_holdings: 3000000,
-            sn_underlying: 'ATX',
-            sn_protection: 88,
-            sn_maturity: '2028-06-30',
-        },
-        {
-            id: '23',
-            client_code: 'CL023',
-            client_name: 'Patricia Davis',
-            client_type: 'individual',
-            bond_holdings: 1300000,
-            bond_yield: 4.0,
-            bond_maturity: '2027-06-30',
-            bond_coupon: 3.8,
-            mf_holdings: 1400000,
-            mf_nav: 19.6,
-            mf_return: 8.7,
-            mf_risk_level: 'medium',
-            sn_holdings: 1700000,
-            sn_underlying: 'BIST 100',
-            sn_protection: 85,
-            sn_maturity: '2027-06-30',
-        },
-        {
-            id: '24',
-            client_code: 'CL024',
-            client_name: 'Kappa Retirement Fund',
-            client_type: 'institutional',
-            bond_holdings: 22000000,
-            bond_yield: 5.2,
-            bond_maturity: '2032-03-31',
-            bond_coupon: 5.1,
-            mf_holdings: 18000000,
-            mf_nav: 29.5,
-            mf_return: 11.8,
-            mf_risk_level: 'medium',
-            sn_holdings: 12000000,
-            sn_underlying: 'MOEX',
-            sn_protection: 95,
-            sn_maturity: '2030-09-30',
-        },
-        {
-            id: '25',
-            client_code: 'CL025',
-            client_name: 'Daniel Wilson',
-            client_type: 'individual',
-            bond_holdings: 950000,
-            bond_yield: 3.8,
-            bond_maturity: '2026-09-30',
-            bond_coupon: 3.7,
-            mf_holdings: 1250000,
-            mf_nav: 18.25,
-            mf_return: 7.6,
-            mf_risk_level: 'low',
-            sn_holdings: 1400000,
-            sn_underlying: 'WIG20',
-            sn_protection: 83,
-            sn_maturity: '2026-12-31',
-        },
-        {
-            id: '26',
-            client_code: 'CL026',
-            client_name: 'Lambda Investments',
-            client_type: 'corporate',
-            bond_holdings: 5500000,
-            bond_yield: 4.8,
-            bond_maturity: '2029-06-30',
-            bond_coupon: 4.7,
-            mf_holdings: 4000000,
-            mf_nav: 21.7,
-            mf_return: 10.2,
-            mf_risk_level: 'high',
-            sn_holdings: 4500000,
-            sn_underlying: 'BUX',
-            sn_protection: 90,
-            sn_maturity: '2028-12-31',
-        },
-        {
-            id: '27',
-            client_code: 'CL027',
-            client_name: 'Michelle Taylor',
-            client_type: 'individual',
-            bond_holdings: 700000,
-            bond_yield: 3.3,
-            bond_maturity: '2025-12-31',
-            bond_coupon: 3.1,
-            mf_holdings: 800000,
-            mf_nav: 15.9,
-            mf_return: 6.5,
-            mf_risk_level: 'low',
-            sn_holdings: 950000,
-            sn_underlying: 'PX',
-            sn_protection: 81,
-            sn_maturity: '2026-03-31',
-        },
-        {
-            id: '28',
-            client_code: 'CL028',
-            client_name: 'Mu Financial Group',
-            client_type: 'institutional',
-            bond_holdings: 19000000,
-            bond_yield: 5.4,
-            bond_maturity: '2031-12-31',
-            bond_coupon: 5.3,
-            mf_holdings: 16000000,
-            mf_nav: 31.2,
-            mf_return: 12.4,
-            mf_risk_level: 'medium',
-            sn_holdings: 11000000,
-            sn_underlying: 'BELEX15',
-            sn_protection: 97,
-            sn_maturity: '2030-06-30',
-        },
-        {
-            id: '29',
-            client_code: 'CL029',
-            client_name: 'Christopher White',
-            client_type: 'individual',
-            bond_holdings: 1600000,
-            bond_yield: 4.4,
-            bond_maturity: '2028-03-31',
-            bond_coupon: 4.2,
-            mf_holdings: 1800000,
-            mf_nav: 20.45,
-            mf_return: 9.1,
-            mf_risk_level: 'medium',
-            sn_holdings: 2100000,
-            sn_underlying: 'SOFIX',
-            sn_protection: 87,
-            sn_maturity: '2028-06-30',
-        },
-        {
-            id: '30',
-            client_code: 'CL030',
-            client_name: 'Nu Asset Management',
-            client_type: 'corporate',
-            bond_holdings: 9000000,
-            bond_yield: 5.6,
-            bond_maturity: '2030-09-30',
-            bond_coupon: 5.5,
-            mf_holdings: 7000000,
-            mf_nav: 26.3,
-            mf_return: 13.8,
-            mf_risk_level: 'very_high',
-            sn_holdings: 6000000,
-            sn_underlying: 'CROBEX',
-            sn_protection: 92,
-            sn_maturity: '2029-12-31',
-        },
-    ];
+    return { config, rows };
+}
+
+export default function Historical() {
+    // Mock API response (ตัวอย่างข้อมูลจาก API)
+    const mockApiResponse: ApiSchema = {
+        table_section: [
+            {
+                col_index: 1,
+                col_type: 'text',
+                col_header_text: 'Customer Code',
+                col_value_field: 'customer_code',
+                col_link_field: null,
+                col_freeze: true,
+                col_show: true,
+                col_format: null,
+                attrs: {
+                    header: {
+                        class: 'col-header-text',
+                        style: 'text-align:left;font-weight:600',
+                    },
+                    cell: {
+                        class: 'col-cell-text',
+                        style: 'text-overflow:ellipsis;white-space:nowrap;overflow:hidden',
+                    },
+                },
+            },
+            {
+                col_index: 2,
+                col_type: 'TEXT',
+                col_header_text: 'Customer Name',
+                col_value_field: 'customer_name',
+                col_link_field: null,
+                col_freeze: true,
+                col_show: true,
+                col_format: null,
+                attrs: {
+                    header: {
+                        class: 'col-header-number',
+                        style: 'text-align:right;font-weight:600',
+                    },
+                    cell: {
+                        class: 'col-cell-number',
+                        style: 'text-align:right;white-space:nowrap',
+                    },
+                },
+            },
+            {
+                col_index: 3,
+                col_type: 'text',
+                col_header_text: 'Transaction Date',
+                col_value_field: 'transaction_date',
+                col_link_field: null,
+                col_freeze: false,
+                col_show: false,
+                col_format: null,
+                attrs: {
+                    header: {
+                        class: 'col-header-text',
+                        style: 'text-align:left;font-weight:600',
+                    },
+                    cell: {
+                        class: 'col-cell-text',
+                        style: 'text-align:left;white-space:nowrap',
+                    },
+                },
+            },
+            {
+                col_index: 4,
+                col_type: 'link',
+                col_header_text: 'Action',
+                col_value_field: 'profile',
+                col_link_field: 'profile_link',
+                col_freeze: false,
+                col_show: true,
+                col_format: null,
+                attrs: {
+                    header: {
+                        class: 'col-header-text',
+                        style: null,
+                    },
+                    cell: {
+                        class: 'col-cell-text',
+                        style: null,
+                    },
+                },
+            },
+        ],
+        cols_data: [
+            {
+                customer_code: '641789',
+                customer_name: 'นาย client 01',
+                transaction_date: '10/4/2026',
+                tel: '0810000000',
+                profile: 'Profile',
+                profile_link: 'http://localhost/profile_system/641789',
+            },
+            {
+                customer_code: '520964',
+                customer_name: 'นาย client 02',
+                transaction_date: '10/4/2026',
+                tel: '0820000000',
+                profile: 'Profile',
+                profile_link: 'http://localhost/profile_system/520964',
+            },
+            {
+                customer_code: '789456',
+                customer_name: 'นาง client 03',
+                transaction_date: '11/4/2026',
+                tel: '0830000000',
+                profile: 'Profile',
+                profile_link: 'http://localhost/profile_system/789456',
+            },
+        ],
+    };
+
+    // Convert API schema to grid configuration
+    const { config: gridConfig, rows: apiRows } = convertApiSchemaToGridConfig(mockApiResponse);
 
     // Premium grid configuration (converted from custom config)
     const premiumGridConfig: DataGridPremiumConfig = {
@@ -857,13 +344,13 @@ export default function Historical() {
     };
 
     const [selectedColumns, setSelectedColumns] = useState<string[]>(
-        gridConfig.meta.filter((col) => col.category === 'core').map((col) => col.field),
+        gridConfig.meta.filter((col) => col.frozen || col.category === 'core').map((col) => col.field),
     );
     const [visibleColumnsPremium, setVisibleColumnsPremium] = useState<string[]>(
         premiumGridConfig.columns.filter((col) => col.category === 'core').map((col) => col.field!),
     );
     const [selectedRows, setSelectedRows] = useState<string[]>([]);
-    const [gridData, setGridData] = useState<RowData[]>(mockRows);
+    const [gridData, setGridData] = useState<RowData[]>(apiRows); // Use API rows instead of mock data
 
     const visibleColumns = gridConfig.meta.filter((col) => selectedColumns.includes(col.field));
 
