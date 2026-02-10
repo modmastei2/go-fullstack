@@ -14,15 +14,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [isLocked, setIsLocked] = useState<boolean>(false);
     const [lockedAt, setLockedAt] = useState<number>(0);
     const initOnceRef = useRef(false);
-    
+
+    const lockChannelRef = useRef<BroadcastChannel | null>(null);
+    const lockingRef = useRef(false); // ป้องกัน Race Condition ในการ lock session
+
     const IDLE_TIMEOUT = (Number(import.meta.env.VITE_IDLE_TIMEOUT_MINUTES) || 15) * 60 * 1000;
 
     useIdleDetector({
         idleTimeout: IDLE_TIMEOUT,
+        // onIdled: async () => {
+        //     if (user && !isLocked) {
+        //         console.log('User is idle. Locking session...');
+        //         await lockSession();
+        //     }
+        // },
         onIdled: async () => {
-            if (user && !isLocked) {
+            if (user && !isLocked && !lockingRef.current) {
                 console.log('User is idle. Locking session...');
-                await lockSession();
+
+                lockingRef.current = true;
+                console.log("lockingRef set to :", lockingRef.current);
+                try {
+                    // broadcast intent to lock to other tabs
+                    if (lockChannelRef.current) {
+                        lockChannelRef.current.postMessage({
+                            type: 'lock_intent',
+                            timestamp: Date.now(),
+                        });
+                    }
+
+                    // รอเล็กน้อยเพื่อให้ tab อื่นๆ ได้รับ message ก่อน
+                    await new Promise((resolve) => setTimeout(resolve, 100));
+
+                    // ถ้ายังไม่ถูก lock จาก tab อื่น ให้เรียก API
+                    if (!isLocked && lockingRef.current) {
+                        console.log('Locking session due to idle timeout.');
+                        await lockSession();
+                    }
+                } finally {
+                    lockingRef.current = false;
+                }
             }
         },
     });
@@ -107,6 +138,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             initAuth();
         }
 
+        lockChannelRef.current = new BroadcastChannel('auth-lock-channel');
+
+        lockChannelRef.current.onmessage = (event) => {
+            if (event.data.type === 'lock_intent') {
+                // Tab อื่นกำลังจะ lock, set flag เพื่อไม่ให้ tab นี้ lock ซ้ำ
+                lockingRef.current = true;
+
+                console.log('%cLock intent received from another tab.', 'color: orange;');
+            }
+        };
+
         // listen for session locked event from API Interceptor
         const handleSessionLocked = () => {
             const lockTime = Date.now();
@@ -136,6 +178,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return () => {
             window.removeEventListener('session-locked', handleSessionLocked);
             window.removeEventListener('storage', handleStorageChange);
+
+            if (lockChannelRef.current) {
+                lockChannelRef.current.close();
+                lockChannelRef.current = null;
+            }
         };
     }, [syncLockState]);
 
@@ -161,7 +208,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } catch (error) {
             console.error('Logout failed:', error);
         } finally {
-             // Only clear localStorage data (cookies are handled by backend)
+            // Only clear localStorage data (cookies are handled by backend)
             localStorage.removeItem('user_data');
             localStorage.removeItem('session_locked');
             localStorage.removeItem('session_locked_at');
@@ -184,6 +231,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             localStorage.setItem('session_locked_at', lockTime.toString());
         } catch (error) {
             console.error('Lock session failed:', error);
+
+            if (isAxiosError(error) && error.response?.data?.errorCode === 'SESSION_LOCKED') {
+                // ถ้า session ถูก lock ไปแล้วจาก tab อื่น ให้ sync state
+                console.log('Session already locked in another tab. Syncing state...');
+                syncLockState();
+                return;
+            }
 
             await logout();
         }
