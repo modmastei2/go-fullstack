@@ -32,15 +32,20 @@ const useIdleDetector = ({
 
     const triggerIdle = useCallback((shouldBroadcast = true) => {
         setIsIdle(prevIdle => {
-            // เช็คว่า state เปลี่ยนจริงๆ ถึงจะ broadcast
-            if (!prevIdle && shouldBroadcast && syncAcrossTabs && broadcastRef.current) {
-                broadcastRef.current.postMessage({
-                    type: 'idle',
-                    timestamp: Date.now(),
-                });
-            }
+            // เช็คว่า state เปลี่ยนจริงๆ และยังไม่ได้ broadcast
             if (!prevIdle) {
-                onIdleRef.current?.();
+                // Broadcast ก่อน เพื่อให้ tabs อื่นรู้และไม่เรียก callback ของตัวเอง
+                if (shouldBroadcast && syncAcrossTabs && broadcastRef.current) {
+                    broadcastRef.current.postMessage({
+                        type: 'idle',
+                        timestamp: Date.now(),
+                    });
+                }
+                
+                // เรียก callback (เฉพาะ tab ที่ trigger idle จริงๆ)
+                if (shouldBroadcast) {
+                    onIdleRef.current?.();
+                }
             }
             return true;
         });
