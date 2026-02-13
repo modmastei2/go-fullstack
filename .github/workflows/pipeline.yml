@@ -154,7 +154,7 @@ jobs:
       - name: Push Code to Production Repository
         run: |
           git remote add bitbucket https://x-token-auth:${{ secrets.BITBUCKET_API_TOKEN }}@${{ secrets.BITBUCKET_REPO }}
-          git push bitbucket master # push branch หลัก
+          git push bitbucket HEAD:master # push branch หลัก
           git push bitbucket ${{ github.ref_name }} # push tag ที่สร้างขึ้น
 
 
