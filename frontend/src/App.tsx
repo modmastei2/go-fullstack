@@ -14,6 +14,7 @@ import DevComponents from './modules/post-login/dev/pages/dev.components';
 import { HistoricalRoute, InformHubRoute } from './shared/constants/routes';
 import Historical from './modules/post-login/historical/pages/Historical';
 import Inform from './modules/post-login/inform-hub/pages/Inform';
+import Historical2 from './modules/post-login/historical/pages/Historical2';
 
 const router = createBrowserRouter([
     {
@@ -33,6 +34,10 @@ const router = createBrowserRouter([
                             {
                                 path: HistoricalRoute.historical,
                                 element: <Historical />
+                            },
+                            {
+                                path: HistoricalRoute.historical2,
+                                element: <Historical2 />
                             }
                         ]
                     },

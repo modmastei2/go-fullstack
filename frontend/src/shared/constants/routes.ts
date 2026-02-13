@@ -14,6 +14,9 @@ export class HistoricalRoute {
     static prefix = 'historical';
     static historical = 'historical-trans';
     static historicalFullPath: string = `${HistoricalRoute.prefix}/${HistoricalRoute.historical}`;
+
+    static historical2 = 'historical2'
+    static historical2FullPath: string = `${HistoricalRoute.prefix}/${HistoricalRoute.historical2}`;
 }
 
 export class InformHubRoute {
