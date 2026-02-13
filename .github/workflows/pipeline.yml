@@ -154,7 +154,8 @@ jobs:
       - name: Push Code to Production Repository
         run: |
           git remote add bitbucket https://x-token-auth:${{ secrets.BITBUCKET_API_TOKEN }}@${{ secrets.BITBUCKET_REPO }}
-          git push bitbucket --mirror 
+          git push bitbucket HEAD:master --force
+          git push bitbucket --tags --force 
           
           
       #git push bitbucket HEAD:master --force
