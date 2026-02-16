@@ -1,0 +1,22 @@
+meta {
+  name: New HTTP Request
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://127.0.0.1:9090/api/v1/wealth/filters/search
+  body: json
+  auth: none
+}
+
+headers {
+  pretoken: MjAyMjA0MjgxNzQwMDA=
+  token: 4CIJ1dZXFEDoEinOsKo5Bw==
+}
+
+body:json {
+  {
+    "message": "Text Text"
+  }
+}

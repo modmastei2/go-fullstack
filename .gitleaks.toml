@@ -14,5 +14,6 @@ regexes = [
 paths = [
     '''GITLEAKS-SETUP\.md''',
     '''.*_test\.go''',
-    '''.*\.test\.ts'''
+    '''.*\.test\.ts''',
+    '''*\.bru'''
 ]
