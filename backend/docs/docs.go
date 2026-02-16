@@ -19,7 +19,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "CookieAuth": []
                     }
                 ],
                 "description": "Get current user session information and lock status",
@@ -60,7 +60,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "CookieAuth": []
                     }
                 ],
                 "description": "Lock current session temporarily (similar to screen lock)",
@@ -116,7 +116,7 @@ const docTemplate = `{
         },
         "/auth/login": {
             "post": {
-                "description": "Authenticate user with username and password",
+                "description": "Authenticate user with username and password. Sets access_token and refresh_token cookies automatically.",
                 "consumes": [
                     "application/json"
                 ],
@@ -140,7 +140,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successfully logged in with access and refresh tokens",
+                        "description": "Successfully logged in with tokens set in HTTP-only cookies",
                         "schema": {
                             "$ref": "#/definitions/auth.TokenResponse"
                         }
@@ -170,10 +170,10 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "CookieAuth": []
                     }
                 ],
-                "description": "Invalidate current session and remove tokens",
+                "description": "Invalidate current session and clear cookies",
                 "consumes": [
                     "application/json"
                 ],
@@ -186,7 +186,7 @@ const docTemplate = `{
                 "summary": "User logout",
                 "responses": {
                     "200": {
-                        "description": "Successfully logged out",
+                        "description": "Successfully logged out, cookies cleared",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -213,7 +213,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "CookieAuth": []
                     }
                 ],
                 "description": "Retrieve authenticated user's profile information",
@@ -252,7 +252,7 @@ const docTemplate = `{
         },
         "/auth/refresh-token": {
             "post": {
-                "description": "Generate new access token using refresh token",
+                "description": "Generate new access token using refresh token from cookie (automatic)",
                 "consumes": [
                     "application/json"
                 ],
@@ -263,28 +263,11 @@ const docTemplate = `{
                     "Auth"
                 ],
                 "summary": "Refresh access token",
-                "parameters": [
-                    {
-                        "description": "Refresh token",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/auth.RefreshTokenRequest"
-                        }
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "New access token generated",
                         "schema": {
                             "$ref": "#/definitions/auth.TokenResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request body",
-                        "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
                         }
                     },
                     "401": {
@@ -306,7 +289,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "CookieAuth": []
                     }
                 ],
                 "description": "Unlock previously locked session by verifying password",
@@ -387,21 +370,10 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.RefreshTokenRequest": {
-            "type": "object",
-            "properties": {
-                "refresh_token": {
-                    "type": "string"
-                }
-            }
-        },
         "auth.TokenResponse": {
             "type": "object",
             "properties": {
-                "accessToken": {
-                    "type": "string"
-                },
-                "refreshToken": {
+                "message": {
                     "type": "string"
                 },
                 "user": {}
@@ -418,13 +390,21 @@ const docTemplate = `{
         "shared.ErrorResponse": {
             "type": "object",
             "properties": {
-                "code": {
+                "errorCode": {
                     "type": "string"
                 },
                 "message": {
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "CookieAuth": {
+            "description": "Access token stored in HTTP-only cookie. Login via /auth/login to set cookie automatically.",
+            "type": "apiKey",
+            "name": "access_token",
+            "in": "cookie"
         }
     }
 }`
@@ -436,7 +416,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "KS_Wealth API",
-	Description:      "This is the API documentation for the KS_Wealth backend server.",
+	Description:      "This is the API documentation for the KS_Wealth backend server. Authentication uses HTTP-only cookies.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

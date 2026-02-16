@@ -5,12 +5,12 @@ package auth
 
 // Login godoc
 // @Summary      User login
-// @Description  Authenticate user with username and password
+// @Description  Authenticate user with username and password. Sets access_token and refresh_token cookies automatically.
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
 // @Param        request body LoginRequest true "Login credentials"
-// @Success      200 {object} TokenResponse "Successfully logged in with access and refresh tokens"
+// @Success      200 {object} TokenResponse "Successfully logged in with tokens set in HTTP-only cookies"
 // @Failure      400 {object} shared.ErrorResponse "Invalid request body"
 // @Failure      401 {object} shared.ErrorResponse "Invalid username or password"
 // @Failure      500 {object} shared.ErrorResponse "Internal server error"
@@ -19,13 +19,11 @@ func Login() {}
 
 // RefreshToken godoc
 // @Summary      Refresh access token
-// @Description  Generate new access token using refresh token
+// @Description  Generate new access token using refresh token from cookie (automatic)
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
-// @Param        request body RefreshTokenRequest true "Refresh token"
 // @Success      200 {object} TokenResponse "New access token generated"
-// @Failure      400 {object} shared.ErrorResponse "Invalid request body"
 // @Failure      401 {object} shared.ErrorResponse "Invalid or expired refresh token"
 // @Failure      500 {object} shared.ErrorResponse "Internal server error"
 // @Router       /auth/refresh-token [post]
@@ -33,12 +31,12 @@ func RefreshToken() {}
 
 // Logout godoc
 // @Summary      User logout
-// @Description  Invalidate current session and remove tokens
+// @Description  Invalidate current session and clear cookies
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
-// @Security     BearerAuth
-// @Success      200 {object} map[string]string "Successfully logged out"
+// @Security     CookieAuth
+// @Success      200 {object} map[string]string "Successfully logged out, cookies cleared"
 // @Failure      401 {object} shared.ErrorResponse "Unauthorized - invalid or missing token"
 // @Failure      500 {object} shared.ErrorResponse "Internal server error"
 // @Router       /auth/logout [post]
@@ -50,7 +48,7 @@ func Logout() {}
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
-// @Security     BearerAuth
+// @Security     CookieAuth
 // @Param        request body LockSessionRequest true "Lock timestamp"
 // @Success      200 {object} map[string]interface{} "Session locked successfully"
 // @Failure      400 {object} shared.ErrorResponse "Invalid request body"
@@ -65,7 +63,7 @@ func LockSession() {}
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
-// @Security     BearerAuth
+// @Security     CookieAuth
 // @Param        request body UnlockRequest true "Password for verification"
 // @Success      200 {object} map[string]interface{} "Session unlocked successfully"
 // @Failure      400 {object} shared.ErrorResponse "Invalid request body"
@@ -81,7 +79,7 @@ func UnlockSession() {}
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
-// @Security     BearerAuth
+// @Security     CookieAuth
 // @Success      200 {object} map[string]interface{} "Session information including lock status and user data"
 // @Failure      401 {object} shared.ErrorResponse "Unauthorized - invalid or missing token"
 // @Failure      500 {object} shared.ErrorResponse "Internal server error"
@@ -94,7 +92,7 @@ func CheckSession() {}
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
-// @Security     BearerAuth
+// @Security     CookieAuth
 // @Success      200 {object} map[string]interface{} "User profile with session data"
 // @Failure      401 {object} shared.ErrorResponse "Unauthorized - invalid or missing token"
 // @Failure      500 {object} shared.ErrorResponse "Internal server error"

@@ -10,9 +10,13 @@ import (
 
 // @title KS_Wealth API
 // @version 1.0
-// @description This is the API documentation for the KS_Wealth backend server.
+// @description This is the API documentation for the KS_Wealth backend server. Authentication uses HTTP-only cookies.
 // @host localhost:8080
 // @BasePath /api/v1
+// @securityDefinitions.apikey CookieAuth
+// @in cookie
+// @name access_token
+// @description Access token stored in HTTP-only cookie. Login via /auth/login to set cookie automatically.
 func main() {
 	app := fiber.New(fiber.Config{
 		AppName:               "KS_WEALTH_API",

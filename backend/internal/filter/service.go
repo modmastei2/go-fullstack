@@ -22,60 +22,146 @@ func (s *FilterService) GetFilter(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(GetFilterResponse{
-		Criteria: []CriteriaModel{
+		Data_Source: map[string][]DataSourceModel{
+			"product": {
+				{
+					Text:        "All Product",
+					Value:       "",
+					DisplayExpr: "All Product",
+					ValueExpr:   "",
+					Disabled:    false,
+				},
+				{
+					Text:        "Mutual Fund",
+					Value:       "MF",
+					DisplayExpr: "Mutual Fund",
+					ValueExpr:   "MF",
+					Disabled:    false,
+				},
+				{
+					Text:        "Bond",
+					Value:       "BOND",
+					DisplayExpr: "Bond",
+					ValueExpr:   "BOND",
+					Disabled:    false,
+				},
+				{
+					Text:        "Structured Note",
+					Value:       "SN",
+					DisplayExpr: "Structured Note",
+					ValueExpr:   "SN",
+					Disabled:    false,
+				},
+			},
+			"sale_id": {
+				{
+					Text:        "S001",
+					Value:       "S001",
+					DisplayExpr: "S001",
+					ValueExpr:   "S001",
+					Disabled:    false,
+				},
+				{
+					Text:        "S002",
+					Value:       "S002",
+					DisplayExpr: "S002",
+					ValueExpr:   "S002",
+					Disabled:    false,
+				},
+			},
+			"sale_name": {
+				{
+					Text:        "John Doe",
+					Value:       "john",
+					DisplayExpr: "John Doe",
+					ValueExpr:   "john",
+					Disabled:    false,
+				},
+				{
+					Text:        "Jane Smith",
+					Value:       "jane",
+					DisplayExpr: "Jane Smith",
+					ValueExpr:   "jane",
+					Disabled:    false,
+				},
+			},
+			"sale_team": {
+				{
+					Text:        "Team A",
+					Value:       "team_a",
+					DisplayExpr: "Team A",
+					ValueExpr:   "team_a",
+					Disabled:    false,
+				},
+				{
+					Text:        "Team B",
+					Value:       "team_b",
+					DisplayExpr: "Team B",
+					ValueExpr:   "team_b",
+					Disabled:    false,
+				},
+			},
+		},
+		Meta_Group: []MetaGroupModel{
 			{
-				Name:        "client_code",
-				DisplayExpr: "Client Code",
-				Type:        "text",
-				DataSource: []DataSourceModel{
+				Text:  "Search",
+				SmCol: 1,
+				MdCol: 2,
+				LgCol: 3,
+				Meta: []MetaModel{
 					{
-						Text:        "Nattawut.W",
-						Value:       "000001",
-						DisplayExpr: "000001: Nattawut.W",
-						ValueExpr:   "000001",
-						Disabled:    false,
+						Name:        "client_code",
+						DisplayExpr: "Client Code",
+						Type:        "text",
+						ColSpan:     1,
+					},
+					{
+						Name:        "client_name",
+						DisplayExpr: "Client Name",
+						Type:        "text",
+						ColSpan:     1,
+					},
+					{
+						Name:          "product",
+						DisplayExpr:   "Product",
+						Type:          "dropdown",
+						ColSpan:       1,
+						DataSourceKey: "product",
+					},
+					{
+						Name:          "sale_id",
+						DisplayExpr:   "Sale ID",
+						Type:          "dropdown",
+						ColSpan:       1,
+						DataSourceKey: "sale_id",
+					},
+					{
+						Name:          "sale_name",
+						DisplayExpr:   "Sale Name",
+						Type:          "dropdown",
+						ColSpan:       1,
+						DataSourceKey: "sale_name",
+					},
+					{
+						Name:          "sale_team",
+						DisplayExpr:   "Sale Team",
+						Type:          "dropdown",
+						ColSpan:       1,
+						DataSourceKey: "sale_team",
 					},
 				},
 			},
 			{
-				Name:        "client_name",
-				DisplayExpr: "Client Name",
-				Type:        "dropdown",
-				DataSource: []DataSourceModel{
+				Text:  "Period",
+				SmCol: 1,
+				MdCol: 2,
+				LgCol: 2,
+				Meta: []MetaModel{
 					{
-						Text:        "Nattawut.W",
-						Value:       "000001",
-						DisplayExpr: "000001: Nattawut.W",
-						ValueExpr:   "000001",
-						Disabled:    false,
-					},
-				},
-			},
-			{
-				Name:        "product_type",
-				DisplayExpr: "Product",
-				Type:        "dropdown",
-				DataSource: []DataSourceModel{
-					{
-						Text:        "Mutual Fund",
-						Value:       "MF",
-						DisplayExpr: "MF: Mutual Fund",
-						ValueExpr:   "MF",
-						Disabled:    false,
-					},
-					{
-						Text:        "Bond",
-						Value:       "BOND",
-						DisplayExpr: "BOND: Bond",
-						ValueExpr:   "BOND",
-						Disabled:    false,
-					},
-					{
-						Text:        "Structured Note",
-						Value:       "SN",
-						DisplayExpr: "SN: Structured Note",
-						ValueExpr:   "SN",
-						Disabled:    false,
+						Name:        "period",
+						DisplayExpr: "Select period",
+						Type:        "date_range",
+						ColSpan:     2,
 					},
 				},
 			},

@@ -5,14 +5,26 @@ type GetFilterParam struct {
 }
 
 type GetFilterResponse struct {
-	Criteria []CriteriaModel `json:"criteria"`
+	Meta_Group  []MetaGroupModel             `json:"meta_group"`
+	Data_Source map[string][]DataSourceModel `json:"data_source"`
+	// value dynamic field
+	Value map[string]interface{} `json:"value"`
 }
 
-type CriteriaModel struct {
-	Name        string            `json:"name"`
-	DisplayExpr string            `json:"display_expr"`
-	Type        string            `json:"type"` // dropdown, date, date_range, text, number
-	DataSource  []DataSourceModel `json:"data_source,omitempty"`
+type MetaGroupModel struct {
+	Text  string      `json:"text"`
+	SmCol int         `json:"sm_col"`
+	MdCol int         `json:"md_col"`
+	LgCol int         `json:"lg_col"`
+	Meta  []MetaModel `json:"meta"`
+}
+
+type MetaModel struct {
+	Name          string `json:"name"`
+	DisplayExpr   string `json:"display_expr"`
+	Type          string `json:"type"` // dropdown, date, date_range, text, number
+	ColSpan       int    `json:"col_span"`
+	DataSourceKey string `json:"data_source_key,omitempty"`
 }
 
 type DataSourceModel struct {

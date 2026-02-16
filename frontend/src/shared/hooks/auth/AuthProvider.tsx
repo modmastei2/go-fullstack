@@ -15,12 +15,45 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [lockedAt, setLockedAt] = useState<number>(0);
     const initOnceRef = useRef(false);
 
+    const lockChannelRef = useRef<BroadcastChannel | null>(null);
+    const lockingRef = useRef(false); // ป้องกัน Race Condition ในการ lock session
+
+    const IDLE_TIMEOUT = (Number(import.meta.env.VITE_IDLE_TIMEOUT_MINUTES) || 15) * 60 * 1000;
+
     useIdleDetector({
-        idleTimeout: 15 * 60 * 1000, // 15 นาที
-        onIdle: async () => {
-            if (user && !isLocked) {
+        idleTimeout: IDLE_TIMEOUT,
+        // onIdled: async () => {
+        //     if (user && !isLocked) {
+        //         console.log('User is idle. Locking session...');
+        //         await lockSession();
+        //     }
+        // },
+        onIdled: async () => {
+            if (user && !isLocked && !lockingRef.current) {
                 console.log('User is idle. Locking session...');
-                await lockSession();
+
+                lockingRef.current = true;
+                console.log("lockingRef set to :", lockingRef.current);
+                try {
+                    // broadcast intent to lock to other tabs
+                    if (lockChannelRef.current) {
+                        lockChannelRef.current.postMessage({
+                            type: 'lock_intent',
+                            timestamp: Date.now(),
+                        });
+                    }
+
+                    // รอเล็กน้อยเพื่อให้ tab อื่นๆ ได้รับ message ก่อน
+                    await new Promise((resolve) => setTimeout(resolve, 100));
+
+                    // ถ้ายังไม่ถูก lock จาก tab อื่น ให้เรียก API
+                    if (!isLocked && lockingRef.current) {
+                        console.log('Locking session due to idle timeout.');
+                        await lockSession();
+                    }
+                } finally {
+                    lockingRef.current = false;
+                }
             }
         },
     });
@@ -43,8 +76,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const initAuth = async () => {
             setIsLoading(true); // เริ่ม loading
 
-            const accessToken = localStorage.getItem('access_token');
-            if (!accessToken) {
+            const userData = localStorage.getItem('user_data');
+            const sessionLocked = localStorage.getItem('session_locked');
+
+            // If no user data exists, skip API calls (not logged in)
+            if (!userData && !sessionLocked) {
                 setIsLoading(false);
                 return;
             }
@@ -66,16 +102,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     localStorage.setItem('session_locked_at', lockTime.toString());
                 }
             } catch (error: unknown) {
-                console.error('Failed to initialize auth:', error);
-
-                if (isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
-                    localStorage.removeItem('access_token');
-                    localStorage.removeItem('refresh_token');
-                    localStorage.removeItem('session_locked');
-                    localStorage.removeItem('session_locked_at');
-                    localStorage.removeItem('user_data');
-                    setUser(null);
-                    setIsLocked(false);
+                // If 401/403, check if it's after refresh token failed
+                // The axios interceptor will handle refresh token automatically
+                // Only clear if refresh also failed (axios interceptor already cleared data)
+                if (isAxiosError(error)) {
+                    if (error.response?.status === 401 || error.response?.status === 403) {
+                        // Check if data was already cleared by interceptor
+                        const hasUserData = !!localStorage.getItem('user_data');
+                        if (!hasUserData) {
+                            // Data was cleared by interceptor after refresh failed
+                            setUser(null);
+                            setIsLocked(false);
+                        } else {
+                            // Unexpected error, clear stale data
+                            localStorage.removeItem('session_locked');
+                            localStorage.removeItem('session_locked_at');
+                            localStorage.removeItem('user_data');
+                            setUser(null);
+                            setIsLocked(false);
+                        }
+                    } else {
+                        console.error('Failed to initialize auth:', error);
+                    }
+                } else {
+                    console.error('Failed to initialize auth:', error);
                 }
             } finally {
                 setIsLoading(false); // จบ loading
@@ -88,6 +138,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             initAuth();
         }
 
+        lockChannelRef.current = new BroadcastChannel('auth-lock-channel');
+
+        lockChannelRef.current.onmessage = (event) => {
+            if (event.data.type === 'lock_intent') {
+                // Tab อื่นกำลังจะ lock, set flag เพื่อไม่ให้ tab นี้ lock ซ้ำ
+                lockingRef.current = true;
+
+                console.log('%cLock intent received from another tab.', 'color: orange;');
+            }
+        };
+
         // listen for session locked event from API Interceptor
         const handleSessionLocked = () => {
             const lockTime = Date.now();
@@ -99,14 +160,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const handleStorageChange = (e: StorageEvent) => {
             if (e.key === 'session_locked') {
                 syncLockState();
-            } else if (e.key === 'access_token') {
-                if (!e.newValue) {
-                    setUser(null);
-                    setIsLocked(false);
-                    setLockedAt(0);
-                    localStorage.removeItem('session_locked');
-                    localStorage.removeItem('session_locked_at');
-                }
             } else if (e.key === 'user_data' && e.newValue) {
                 try {
                     const userData = JSON.parse(e.newValue);
@@ -125,15 +178,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return () => {
             window.removeEventListener('session-locked', handleSessionLocked);
             window.removeEventListener('storage', handleStorageChange);
+
+            if (lockChannelRef.current) {
+                lockChannelRef.current.close();
+                lockChannelRef.current = null;
+            }
         };
     }, [syncLockState]);
 
     const login = async (username: string, password: string) => {
         const response = await api.post('/auth/login', { username, password });
-        const { accessToken, refreshToken, user: userData } = response.data;
+        const { user: userData } = response.data;
 
-        localStorage.setItem('access_token', accessToken);
-        localStorage.setItem('refresh_token', refreshToken);
+        // Tokens are now stored in HTTP-Only cookies by the backend
+        // We only need to store user data in localStorage
         localStorage.setItem('user_data', JSON.stringify(userData));
         localStorage.removeItem('session_locked');
         localStorage.removeItem('session_locked_at');
@@ -145,12 +203,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const logout = async () => {
         try {
+            // Backend will clear the cookies
             await api.post('/auth/logout');
         } catch (error) {
             console.error('Logout failed:', error);
         } finally {
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
+            // Only clear localStorage data (cookies are handled by backend)
             localStorage.removeItem('user_data');
             localStorage.removeItem('session_locked');
             localStorage.removeItem('session_locked_at');
@@ -173,6 +231,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             localStorage.setItem('session_locked_at', lockTime.toString());
         } catch (error) {
             console.error('Lock session failed:', error);
+
+            if (isAxiosError(error) && error.response?.data?.errorCode === 'SESSION_LOCKED') {
+                // ถ้า session ถูก lock ไปแล้วจาก tab อื่น ให้ sync state
+                console.log('Session already locked in another tab. Syncing state...');
+                syncLockState();
+                return;
+            }
 
             await logout();
         }

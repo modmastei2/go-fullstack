@@ -12,16 +12,9 @@ definitions:
       username:
         type: string
     type: object
-  auth.RefreshTokenRequest:
-    properties:
-      refresh_token:
-        type: string
-    type: object
   auth.TokenResponse:
     properties:
-      accessToken:
-        type: string
-      refreshToken:
+      message:
         type: string
       user: {}
     type: object
@@ -32,7 +25,7 @@ definitions:
     type: object
   shared.ErrorResponse:
     properties:
-      code:
+      errorCode:
         type: string
       message:
         type: string
@@ -40,7 +33,8 @@ definitions:
 host: localhost:8080
 info:
   contact: {}
-  description: This is the API documentation for the KS_Wealth backend server.
+  description: This is the API documentation for the KS_Wealth backend server. Authentication
+    uses HTTP-only cookies.
   title: KS_Wealth API
   version: "1.0"
 paths:
@@ -66,7 +60,7 @@ paths:
           schema:
             $ref: '#/definitions/shared.ErrorResponse'
       security:
-      - BearerAuth: []
+      - CookieAuth: []
       summary: Check session status
       tags:
       - Auth
@@ -103,7 +97,7 @@ paths:
           schema:
             $ref: '#/definitions/shared.ErrorResponse'
       security:
-      - BearerAuth: []
+      - CookieAuth: []
       summary: Lock user session
       tags:
       - Auth
@@ -111,7 +105,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Authenticate user with username and password
+      description: Authenticate user with username and password. Sets access_token
+        and refresh_token cookies automatically.
       parameters:
       - description: Login credentials
         in: body
@@ -123,7 +118,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Successfully logged in with access and refresh tokens
+          description: Successfully logged in with tokens set in HTTP-only cookies
           schema:
             $ref: '#/definitions/auth.TokenResponse'
         "400":
@@ -145,12 +140,12 @@ paths:
     post:
       consumes:
       - application/json
-      description: Invalidate current session and remove tokens
+      description: Invalidate current session and clear cookies
       produces:
       - application/json
       responses:
         "200":
-          description: Successfully logged out
+          description: Successfully logged out, cookies cleared
           schema:
             additionalProperties:
               type: string
@@ -164,7 +159,7 @@ paths:
           schema:
             $ref: '#/definitions/shared.ErrorResponse'
       security:
-      - BearerAuth: []
+      - CookieAuth: []
       summary: User logout
       tags:
       - Auth
@@ -190,7 +185,7 @@ paths:
           schema:
             $ref: '#/definitions/shared.ErrorResponse'
       security:
-      - BearerAuth: []
+      - CookieAuth: []
       summary: Get user profile
       tags:
       - Auth
@@ -198,14 +193,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Generate new access token using refresh token
-      parameters:
-      - description: Refresh token
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/auth.RefreshTokenRequest'
+      description: Generate new access token using refresh token from cookie (automatic)
       produces:
       - application/json
       responses:
@@ -213,10 +201,6 @@ paths:
           description: New access token generated
           schema:
             $ref: '#/definitions/auth.TokenResponse'
-        "400":
-          description: Invalid request body
-          schema:
-            $ref: '#/definitions/shared.ErrorResponse'
         "401":
           description: Invalid or expired refresh token
           schema:
@@ -265,8 +249,15 @@ paths:
           schema:
             $ref: '#/definitions/shared.ErrorResponse'
       security:
-      - BearerAuth: []
+      - CookieAuth: []
       summary: Unlock user session
       tags:
       - Auth
+securityDefinitions:
+  CookieAuth:
+    description: Access token stored in HTTP-only cookie. Login via /auth/login to
+      set cookie automatically.
+    in: cookie
+    name: access_token
+    type: apiKey
 swagger: "2.0"
