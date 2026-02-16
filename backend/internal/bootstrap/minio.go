@@ -3,7 +3,7 @@ package bootstrap
 import (
 	"context"
 	"fmt"
-	"go-backend/internal/config"
+	"go-backend/internal/extensions"
 	"log"
 	"time"
 
@@ -12,7 +12,7 @@ import (
 )
 
 func InitializeMinio() (*minio.Client, error) {
-	cfg := config.GetConfig()
+	cfg := extensions.GetConfig()
 
 	endpoint := fmt.Sprintf("%s:%s", cfg.Env.MINIO_HOST, cfg.Env.MINIO_PORT)
 	if endpoint == ":" {

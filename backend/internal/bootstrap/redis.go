@@ -3,7 +3,7 @@ package bootstrap
 import (
 	"context"
 	"fmt"
-	"go-backend/internal/config"
+	"go-backend/internal/extensions"
 	"log"
 	"strconv"
 	"time"
@@ -12,7 +12,7 @@ import (
 )
 
 func InitializeRedis() (*redis.Client, error) {
-	cfg := config.GetConfig()
+	cfg := extensions.GetConfig()
 
 	dbParsed, err := strconv.Atoi(cfg.Env.REDIS_DB)
 	if err != nil {

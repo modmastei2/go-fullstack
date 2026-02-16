@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"go-backend/internal/auth"
-	"go-backend/internal/config"
+	"go-backend/internal/extensions"
 	"go-backend/internal/filter"
 	"go-backend/internal/middleware"
 	"go-backend/internal/shared"
@@ -17,8 +17,8 @@ import (
 
 func InitializeApp(app *fiber.App) {
 	// ******* Initialize Config *******
-	config.InitConfig()
-	config.LoadEnv()
+	extensions.InitConfig()
+	extensions.LoadEnv()
 
 	// ******* Allow HTTP Methods *******
 	app.Use(middleware.HttpMethodMiddleware())
@@ -29,7 +29,7 @@ func InitializeApp(app *fiber.App) {
 	// ******* CORS Middleware ******* (load after config)
 	app.Use(middleware.CorsMiddleware())
 
-	cfg := config.GetConfig()
+	cfg := extensions.GetConfig()
 
 	if cfg.Env.APP_ENV == "" ||
 		cfg.Env.VAULT_HOST == "" ||
@@ -46,7 +46,7 @@ func InitializeApp(app *fiber.App) {
 	}
 
 	// ******* Load Secrets from Vault *******
-	err = config.LoadSecrets(vaultClient)
+	err = extensions.LoadSecrets(vaultClient)
 	if err != nil {
 		log.Fatal(err)
 	}

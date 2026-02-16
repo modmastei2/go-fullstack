@@ -6,7 +6,9 @@ require (
 	github.com/gofiber/fiber/v2 v2.52.11
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
+	github.com/hashicorp/vault/api v1.22.0
 	github.com/joho/godotenv v1.5.1
+	github.com/minio/minio-go/v7 v7.0.98
 	github.com/redis/go-redis/v9 v9.17.2
 	github.com/swaggo/fiber-swagger v1.3.0
 	github.com/swaggo/swag v1.16.6
@@ -43,7 +45,6 @@ require (
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect
 	github.com/hashicorp/go-sockaddr v1.0.7 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault-7 // indirect
-	github.com/hashicorp/vault/api v1.22.0 // indirect
 	github.com/klauspost/compress v1.18.2 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.11 // indirect
 	github.com/klauspost/crc32 v1.3.0 // indirect
@@ -52,7 +53,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.19 // indirect
 	github.com/minio/crc64nvme v1.1.1 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
-	github.com/minio/minio-go/v7 v7.0.98 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/philhofer/fwd v1.2.0 // indirect

@@ -1,4 +1,4 @@
-package config
+package extensions
 
 import (
 	"context"

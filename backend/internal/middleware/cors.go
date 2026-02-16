@@ -1,14 +1,14 @@
 package middleware
 
 import (
-	"go-backend/internal/config"
+	"go-backend/internal/extensions"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 func CorsMiddleware() fiber.Handler {
-	cfg := config.GetConfig()
+	cfg := extensions.GetConfig()
 	allowOrigins := cfg.Env.CORS_ALLOW_ORIGINS
 	if cfg.Env.APP_ENV == "development" {
 		allowOrigins = "http://localhost:3000, http://localhost:5173"

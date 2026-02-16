@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"context"
-	"go-backend/internal/config"
+	"go-backend/internal/extensions"
 	"go-backend/internal/shared"
 	"strconv"
 	"strings"
@@ -15,7 +15,7 @@ import (
 
 func AuthMiddleware(redisClient *redis.Client) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		cfg := config.GetConfig()
+		cfg := extensions.GetConfig()
 		JWT_SECRET := []byte(cfg.Secrets.JWT_SECRET)
 		authHeader := c.Get("Authorization")
 

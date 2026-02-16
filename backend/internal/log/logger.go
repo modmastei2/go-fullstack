@@ -2,7 +2,7 @@ package log
 
 import (
 	"encoding/json"
-	"go-backend/internal/config"
+	"go-backend/internal/extensions"
 	"log"
 	"time"
 
@@ -10,7 +10,7 @@ import (
 )
 
 type Logger struct {
-	cfg *config.Config
+	cfg *extensions.Config
 }
 
 var logger *Logger
@@ -24,7 +24,7 @@ func GetLogger() *Logger {
 
 func initLogger() {
 	logger = &Logger{
-		cfg: config.GetConfig(),
+		cfg: extensions.GetConfig(),
 	}
 }
 

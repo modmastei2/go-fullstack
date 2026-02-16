@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"go-backend/internal/config"
+	"go-backend/internal/extensions"
 	"log"
 	"net/http"
 	"os"
@@ -15,7 +15,7 @@ import (
 )
 
 func InitializeVault() (*api.Client, error) {
-	cfg := config.GetConfig()
+	cfg := extensions.GetConfig()
 
 	apiConfig := api.DefaultConfig()
 	endpoint := fmt.Sprintf("%s:%s", cfg.Env.VAULT_HOST, cfg.Env.VAULT_PORT)
