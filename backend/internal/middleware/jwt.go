@@ -75,7 +75,7 @@ func AuthMiddleware(redisClient *redis.Client) fiber.Handler {
 				lockedAt, _ := strconv.ParseInt(lockedAtStr, 10, 64)
 				lockDuration := time.Now().Unix() - lockedAt
 
-				cfg := config.GetConfig()
+				cfg := extensions.GetConfig()
 				lockTimeout := int64(cfg.Env.LOCK_SCREEN_TIMEOUT_MINUTES * 60)
 
 				if lockDuration > lockTimeout {
