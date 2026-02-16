@@ -6,9 +6,9 @@ import (
 )
 
 func RegisterRoutes(app *fiber.Router, redisClient *redis.Client) {
-	filterService := NewHistoricalService(redisClient)
+	filterService := NewFilterService(redisClient)
 
 	protected := (*app).Group("/filter")
 
-	protected.Post("/get-historical-filter", filterService.GetHistoricalFilter)
+	protected.Post("/get-filter", filterService.GetFilter)
 }

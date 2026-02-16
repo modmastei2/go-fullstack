@@ -5,17 +5,17 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type HistoricalService struct {
+type FilterService struct {
 	redisClient *redis.Client
 }
 
-func NewHistoricalService(redisClient *redis.Client) *HistoricalService {
-	return &HistoricalService{
+func NewFilterService(redisClient *redis.Client) *FilterService {
+	return &FilterService{
 		redisClient: redisClient,
 	}
 }
 
-func (s *HistoricalService) GetHistoricalFilter(c *fiber.Ctx) error {
+func (s *FilterService) GetFilter(c *fiber.Ctx) error {
 	var param GetFilterParam
 	if err := c.BodyParser(&param); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")

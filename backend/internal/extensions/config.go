@@ -41,6 +41,9 @@ type EnvironmentConfig struct {
 	MINIO_PORT    string
 	MINIO_BUCKET  string
 	MINIO_USE_SSL bool
+
+	//http client
+	HTTP_CLIENT_TIMEOUT_MIN int
 }
 
 type SecretsConfig struct {
@@ -83,23 +86,24 @@ func LoadEnv() {
 	}
 
 	cfg.Env = EnvironmentConfig{
-		APP_ENV:            APP_ENV,
-		APP_FORCE_HTTPS:    os.Getenv("APP_FORCE_HTTPS") == "true",
-		SYSTEM_NAME:        os.Getenv("SYSTEM_NAME"),
-		INIT_MAX_RETRY:     shared.StringToIntWithDefault(os.Getenv("INIT_MAX_RETRY"), 5),
-		CORS_ALLOW_ORIGINS: os.Getenv("CORS_ALLOW_ORIGINS"),
-		VAULT_DEV_MODE:     os.Getenv("VAULT_DEV_MODE") == "true",
-		VAULT_HOST:         os.Getenv("VAULT_HOST"),
-		VAULT_PORT:         os.Getenv("VAULT_PORT"),
-		VAULT_TOKEN:        os.Getenv("VAULT_TOKEN"),
-		VAULT_ROLE:         os.Getenv("VAULT_ROLE"),
-		REDIS_HOST:         os.Getenv("REDIS_HOST"),
-		REDIS_PORT:         os.Getenv("REDIS_PORT"),
-		REDIS_DB:           os.Getenv("REDIS_DB"),
-		MINIO_HOST:         os.Getenv("MINIO_HOST"),
-		MINIO_PORT:         os.Getenv("MINIO_PORT"),
-		MINIO_BUCKET:       os.Getenv("MINIO_BUCKET"),
-		MINIO_USE_SSL:      os.Getenv("MINIO_USE_SSL") == "true",
+		APP_ENV:                 APP_ENV,
+		APP_FORCE_HTTPS:         os.Getenv("APP_FORCE_HTTPS") == "true",
+		SYSTEM_NAME:             os.Getenv("SYSTEM_NAME"),
+		INIT_MAX_RETRY:          shared.StringToIntWithDefault(os.Getenv("INIT_MAX_RETRY"), 5),
+		CORS_ALLOW_ORIGINS:      os.Getenv("CORS_ALLOW_ORIGINS"),
+		VAULT_DEV_MODE:          os.Getenv("VAULT_DEV_MODE") == "true",
+		VAULT_HOST:              os.Getenv("VAULT_HOST"),
+		VAULT_PORT:              os.Getenv("VAULT_PORT"),
+		VAULT_TOKEN:             os.Getenv("VAULT_TOKEN"),
+		VAULT_ROLE:              os.Getenv("VAULT_ROLE"),
+		REDIS_HOST:              os.Getenv("REDIS_HOST"),
+		REDIS_PORT:              os.Getenv("REDIS_PORT"),
+		REDIS_DB:                os.Getenv("REDIS_DB"),
+		MINIO_HOST:              os.Getenv("MINIO_HOST"),
+		MINIO_PORT:              os.Getenv("MINIO_PORT"),
+		MINIO_BUCKET:            os.Getenv("MINIO_BUCKET"),
+		MINIO_USE_SSL:           os.Getenv("MINIO_USE_SSL") == "true",
+		HTTP_CLIENT_TIMEOUT_MIN: shared.StringToIntWithDefault(os.Getenv("HTTP_CLIENT_TIMEOUT_SEC"), 10),
 	}
 
 	log.Println("✅ Environment variables loaded successfully")
