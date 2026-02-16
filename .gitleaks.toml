@@ -15,5 +15,5 @@ paths = [
     '''GITLEAKS-SETUP\.md''',
     '''.*_test\.go''',
     '''.*\.test\.ts''',
-    '''*\.bru'''
+    '''.*\.bru'''
 ]
