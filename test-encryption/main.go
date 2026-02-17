@@ -75,7 +75,52 @@ func main() {
 			ApiDescription: "API for searching filters",
 		}
 		response.Result = ResultModel{
-			Data: map[string]interface{}{},
+			Data: map[string]interface{}{
+				"search_param": map[string]interface{}{
+					"filter_type": "example",
+					"query":       "example query",
+				},
+				"template": map[string]interface{}{
+					"detail_section": map[string]interface{}{
+						"grid": map[string]interface{}{
+							"columns":   12,
+							"rowGap":    8,
+							"columnGap": 8,
+						},
+						// array
+						"details": []map[string]interface{}{
+							{
+								"row":      1,
+								"order":    1,
+								"col_span": 6,
+								"value": map[string]interface{}{
+									"id":       "value_group",
+									"type":     "dropdown",
+									"required": true,
+									"lines": []map[string]interface{}{
+										{
+											"segments": []map[string]interface{}{
+												{
+													"text": "Selected Group",
+													"attrs": map[string]interface{}{
+														"class": "modal_value_cyan",
+													},
+												},
+												{
+													"text": "Control view column apply:",
+													"attrs": map[string]interface{}{
+														"class": "text-xs text-gray-600 dark:text-gray-400",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 		}
 
 		message, err := json.Marshal(response)

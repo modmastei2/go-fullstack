@@ -52,12 +52,6 @@ jobs:
           cd backend 
           go test -v ./... -coverprofile=coverage.out -covermode=atomic
 
-      # --- DOCKER FILE LINT
-      - name: Lint Backend Dockerfile
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: backend/Dockerfile
-
       # --- SONARQUBE SCAN backend
       - name: Sonar Scan Backend
         uses: SonarSource/sonarqube-scan-action@v7.0.0
@@ -86,13 +80,8 @@ jobs:
       - name: Frontend Build
         run: cd frontend && npm ci && npm run build
 
-      - name: Lint Frontend Dockerfile
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: frontend/Dockerfile 
-
       # --- SONARQUBE SCAN frontend
-      - name: SonarQube Scan Frontend
+      - name: Sonar Scan Frontend
         uses: SonarSource/sonarqube-scan-action@v7.0.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -115,7 +104,13 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-      
+
+      # --- DOCKER FILE LINT
+      - name: Lint Backend Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: backend/Dockerfile
+
       # --- BUILD AND PUSH BACKEND IMAGE
       - name: Build and Push Backend Image
         uses: docker/build-push-action@v5
@@ -126,6 +121,11 @@ jobs:
             ${{ env.BACKEND_IMAGE }}:${{ github.ref_name }}
             ${{ env.BACKEND_IMAGE }}:latest
 
+      - name: Lint Frontend Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: frontend/Dockerfile 
+          
       # --- BUILD AND PUSH FRONTEND IMAGE
       - name: Build and Push Frontend Image
         uses: docker/build-push-action@v5

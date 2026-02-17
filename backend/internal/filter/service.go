@@ -30,14 +30,16 @@ func (s *FilterService) GetFilter(c *fiber.Ctx) error {
 		})
 	}
 
-	var result = new(ResponseModel)
-	err := s.httpClient.Do(context.Background(), http.MethodPost, "/filters/search", filterPayload, result)
-	log.Printf("📁 GetFilter called with payload: %+v, result: %+v, error: %v\n", filterPayload, result, err)
+	var response = new(ResponseModel)
+	err := s.httpClient.Do(context.Background(), http.MethodPost, "/filters/search", filterPayload, response)
+
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to fetch filter",
 		})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(result)
+	log.Println(response.Result.Data)
+
+	return c.Status(fiber.StatusOK).JSON(response)
 }
