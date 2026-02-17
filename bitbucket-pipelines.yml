@@ -1,0 +1,178 @@
+image: atlassian/default-image:3
+
+definitions:
+  caches:
+    go: /go/pkg/mod
+  
+  services:
+    docker:
+      memory: 3072
+
+  steps:
+    secret-scan: &secret-scan
+      name: Secret Scan
+      image: zricethezav/gitleaks:latest
+      max-time: 5
+      script:
+        - gitleaks detect --config .gitleaks.toml --verbose --no-git
+    
+    validate-tag: &validate-tag
+      name: Validate Tag Format
+      script:
+        - echo $BITBUCKET_TAG | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || (echo "Tag format is invalid. Use vMAJOR.MINOR.PATCH" && exit 1)
+    
+    backend-test: &backend-test
+      name: Backend Build and Test
+      image: golang:1.25.3
+      max-time: 15
+      caches:
+        - go
+      script:
+        - cd backend
+        - go build -o main ./cmd/api
+        - go vet ./cmd/api
+        - go test -v ./... -coverprofile=coverage.out -covermode=atomic
+      artifacts:
+        - backend/coverage.out
+    
+    sonar-backend: &sonar-backend
+      name: SonarQube Scan Backend
+      image: sonarsource/sonar-scanner-cli:5.0
+      max-time: 10
+      script:
+        - >
+          sonar-scanner
+          -Dsonar.projectKey=go-fullstack-backend
+          -Dsonar.sources=backend
+          -Dsonar.go.coverage.reportPaths=backend/coverage.out
+          -Dsonar.host.url=$SONAR_HOST_URL
+          -Dsonar.login=$SONAR_TOKEN
+          -Dsonar.qualitygate.wait=true
+    
+    frontend-test: &frontend-test
+      name: Frontend Build and Test
+      image: node:22
+      max-time: 15
+      caches:
+        - node
+      script:
+        - cd frontend
+        - npm ci
+        - npm run build
+      artifacts:
+        - frontend/dist/**
+    
+    sonar-frontend: &sonar-frontend
+      name: SonarQube Scan Frontend
+      image: sonarsource/sonar-scanner-cli:5.0
+      max-time: 10
+      script:
+        - >
+          sonar-scanner
+          -Dsonar.projectKey=go-fullstack-frontend
+          -Dsonar.sources=frontend
+          -Dsonar.host.url=$SONAR_HOST_URL
+          -Dsonar.login=$SONAR_TOKEN
+          -Dsonar.qualitygate.wait=true
+    
+    hadolint-backend: &hadolint-backend
+      name: Lint Backend Dockerfile
+      image: hadolint/hadolint:latest-alpine
+      script:
+        - hadolint backend/Dockerfile
+    
+    hadolint-frontend: &hadolint-frontend
+      name: Lint Frontend Dockerfile
+      image: hadolint/hadolint:latest-alpine
+      script:
+        - hadolint frontend/Dockerfile
+    
+    build-push-backend: &build-push-backend
+      name: Build and Push Backend Image
+      max-time: 20
+      services:
+        - docker
+      script:
+        - export TAG_NAME=${BITBUCKET_TAG:-latest}
+        - echo $DOCKER_HUB_PASSWORD | docker login -u $DOCKER_HUB_USERNAME --password-stdin
+        - cd backend
+        - docker build -t modmastei2/go-backend:$TAG_NAME -t modmastei2/go-backend:latest .
+        - docker push modmastei2/go-backend:$TAG_NAME
+        - docker push modmastei2/go-backend:latest
+    
+    build-push-frontend: &build-push-frontend
+      name: Build and Push Frontend Image
+      max-time: 20
+      services:
+        - docker
+      script:
+        - export TAG_NAME=${BITBUCKET_TAG:-latest}
+        - echo $DOCKER_HUB_PASSWORD | docker login -u $DOCKER_HUB_USERNAME --password-stdin
+        - cd frontend
+        - docker build --build-arg VITE_ENV=ci -t modmastei2/react-frontend:$TAG_NAME -t modmastei2/react-frontend:latest .
+        - docker push modmastei2/react-frontend:$TAG_NAME
+        - docker push modmastei2/react-frontend:latest
+    
+    trivy-backend: &trivy-backend
+      name: Scan Backend Image with Trivy
+      image: aquasec/trivy:latest
+      max-time: 10
+      services:
+        - docker
+      script:
+        - export TAG_NAME=${BITBUCKET_TAG:-latest}
+        - echo $DOCKER_HUB_PASSWORD | docker login -u $DOCKER_HUB_USERNAME --password-stdin
+        - trivy image --severity HIGH,CRITICAL --exit-code 1 docker.io/modmastei2/go-backend:$TAG_NAME
+    
+    trivy-frontend: &trivy-frontend
+      name: Scan Frontend Image with Trivy
+      image: aquasec/trivy:latest
+      max-time: 10
+      services:
+        - docker
+      script:
+        - export TAG_NAME=${BITBUCKET_TAG:-latest}
+        - echo $DOCKER_HUB_PASSWORD | docker login -u $DOCKER_HUB_USERNAME --password-stdin
+        - trivy image --severity HIGH,CRITICAL --exit-code 1 docker.io/modmastei2/react-frontend:$TAG_NAME
+
+pipelines:
+  default:
+    - step: *secret-scan
+  
+  branches:
+    master:
+      - step: *secret-scan
+  
+  tags:
+    'v*.*.*':
+      # Stage 1: Security Scan - ตรวจสอบความปลอดภัยก่อนทุกอย่าง (fail fast)
+      - step: *secret-scan
+      
+      # Stage 2: Validation - ตรวจสอบ tag format
+      - step: *validate-tag
+      
+      # Stage 3: Dockerfile Linting - ตรวจสอบ Dockerfile ก่อน build
+      - parallel:
+          - step: *hadolint-backend
+          - step: *hadolint-frontend
+      
+      # Stage 4: Build & Test - build และ test code (parallel)
+      - parallel:
+          - step: *backend-test
+          - step: *frontend-test
+      
+      # Stage 5: SonarQube Scan Backend - ต้อง sequential เพื่อใช้ artifact
+      - step: *sonar-backend
+      
+      # Stage 6: SonarQube Scan Frontend - sequential
+      - step: *sonar-frontend
+      
+      # Stage 7: Build & Push Docker Images - build และ push images
+      - parallel:
+          - step: *build-push-backend
+          - step: *build-push-frontend
+      
+      # Stage 8: Container Security Scan - scan ช่องโหว่ใน images
+      - parallel:
+          - step: *trivy-backend
+          - step: *trivy-frontend
