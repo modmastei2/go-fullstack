@@ -12,6 +12,12 @@ func Pkcs5Padding(data []byte, blockSize int) []byte {
 	return append(data, padText...)
 }
 
+func Pkcs5UnPadding(data []byte) []byte {
+	length := len(data)
+	unPadding := int(data[length-1])
+	return data[:(length - unPadding)]
+}
+
 func AesEncrypt(key string, iv string, plaintext string) (string, error) {
 	if iv == "" || len(iv) != 16 {
 		return "", nil
@@ -29,6 +35,8 @@ func AesEncrypt(key string, iv string, plaintext string) (string, error) {
 	mode.CryptBlocks(cipherText, bytes)
 
 	str := string(cipherText)
+
+	// log.Printf("🔐 Encrypted Text %s to CipherText: %s", plaintext, str)
 	return EncodeTextToBase64(str), nil
 }
 
@@ -50,6 +58,8 @@ func AesDecrypt(key string, iv string, cipherText string) (string, error) {
 	mode := cipher.NewCBCDecrypter(block, []byte(iv))
 	plainText := make([]byte, len(decoded))
 	mode.CryptBlocks(plainText, []byte(decoded))
+	plainText = Pkcs5UnPadding(plainText)
 
+	// log.Printf("🔓 Decrypted CipherText %s to PlainText: %s", cipherText, string(plainText))
 	return string(plainText), nil
 }

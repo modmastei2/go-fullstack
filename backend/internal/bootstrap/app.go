@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"go-backend/internal/auth"
+	"go-backend/internal/client"
 	"go-backend/internal/extensions"
 	"go-backend/internal/filter"
 	"go-backend/internal/middleware"
@@ -38,6 +39,9 @@ func InitializeApp(app *fiber.App) {
 		(cfg.Env.VAULT_ROLE == "" && !cfg.Env.VAULT_DEV_MODE) {
 		log.Fatal("Missing required environment variables")
 	}
+
+	// ******* Initialize HTTP Client *******
+	httpClient := client.NewHttpClient("http://127.0.0.1:9090/api/v1/wealth")
 
 	// ******* Initialize Vault Client *******
 	vaultClient, err := InitializeVault()
@@ -84,7 +88,7 @@ func InitializeApp(app *fiber.App) {
 	protected := api.Group("/", middleware.AuthMiddleware(redisClient))
 
 	// ******* Register Filter routes *******
-	filter.RegisterRoutes(&api, redisClient)
+	filter.RegisterRoutes(&api, redisClient, httpClient)
 
 	// Register other routes here, e.g., user, profile, etc.
 	protected.Get("/profile", func(c *fiber.Ctx) error {

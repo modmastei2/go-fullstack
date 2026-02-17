@@ -1,170 +1,43 @@
 package filter
 
 import (
+	"context"
+	"go-backend/internal/client"
+	"log"
+	"net/http"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/redis/go-redis/v9"
 )
 
 type FilterService struct {
 	redisClient *redis.Client
+	httpClient  *client.XHttpClient
 }
 
-func NewFilterService(redisClient *redis.Client) *FilterService {
+func NewFilterService(redisClient *redis.Client, httpClient *client.XHttpClient) *FilterService {
 	return &FilterService{
 		redisClient: redisClient,
+		httpClient:  httpClient,
 	}
 }
 
 func (s *FilterService) GetFilter(c *fiber.Ctx) error {
-	var param GetFilterParam
-	if err := c.BodyParser(&param); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
+	var filterPayload FilterPayload
+	if err := c.BodyParser(&filterPayload); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request payload",
+		})
 	}
 
-	return c.JSON(GetFilterResponse{
-		Data_Source: map[string][]DataSourceModel{
-			"product": {
-				{
-					Text:        "All Product",
-					Value:       "",
-					DisplayExpr: "All Product",
-					ValueExpr:   "",
-					Disabled:    false,
-				},
-				{
-					Text:        "Mutual Fund",
-					Value:       "MF",
-					DisplayExpr: "Mutual Fund",
-					ValueExpr:   "MF",
-					Disabled:    false,
-				},
-				{
-					Text:        "Bond",
-					Value:       "BOND",
-					DisplayExpr: "Bond",
-					ValueExpr:   "BOND",
-					Disabled:    false,
-				},
-				{
-					Text:        "Structured Note",
-					Value:       "SN",
-					DisplayExpr: "Structured Note",
-					ValueExpr:   "SN",
-					Disabled:    false,
-				},
-			},
-			"sale_id": {
-				{
-					Text:        "S001",
-					Value:       "S001",
-					DisplayExpr: "S001",
-					ValueExpr:   "S001",
-					Disabled:    false,
-				},
-				{
-					Text:        "S002",
-					Value:       "S002",
-					DisplayExpr: "S002",
-					ValueExpr:   "S002",
-					Disabled:    false,
-				},
-			},
-			"sale_name": {
-				{
-					Text:        "John Doe",
-					Value:       "john",
-					DisplayExpr: "John Doe",
-					ValueExpr:   "john",
-					Disabled:    false,
-				},
-				{
-					Text:        "Jane Smith",
-					Value:       "jane",
-					DisplayExpr: "Jane Smith",
-					ValueExpr:   "jane",
-					Disabled:    false,
-				},
-			},
-			"sale_team": {
-				{
-					Text:        "Team A",
-					Value:       "team_a",
-					DisplayExpr: "Team A",
-					ValueExpr:   "team_a",
-					Disabled:    false,
-				},
-				{
-					Text:        "Team B",
-					Value:       "team_b",
-					DisplayExpr: "Team B",
-					ValueExpr:   "team_b",
-					Disabled:    false,
-				},
-			},
-		},
-		Meta_Group: []MetaGroupModel{
-			{
-				Text:  "Search",
-				SmCol: 1,
-				MdCol: 2,
-				LgCol: 3,
-				Meta: []MetaModel{
-					{
-						Name:        "client_code",
-						DisplayExpr: "Client Code",
-						Type:        "text",
-						ColSpan:     1,
-					},
-					{
-						Name:        "client_name",
-						DisplayExpr: "Client Name",
-						Type:        "text",
-						ColSpan:     1,
-					},
-					{
-						Name:          "product",
-						DisplayExpr:   "Product",
-						Type:          "dropdown",
-						ColSpan:       1,
-						DataSourceKey: "product",
-					},
-					{
-						Name:          "sale_id",
-						DisplayExpr:   "Sale ID",
-						Type:          "dropdown",
-						ColSpan:       1,
-						DataSourceKey: "sale_id",
-					},
-					{
-						Name:          "sale_name",
-						DisplayExpr:   "Sale Name",
-						Type:          "dropdown",
-						ColSpan:       1,
-						DataSourceKey: "sale_name",
-					},
-					{
-						Name:          "sale_team",
-						DisplayExpr:   "Sale Team",
-						Type:          "dropdown",
-						ColSpan:       1,
-						DataSourceKey: "sale_team",
-					},
-				},
-			},
-			{
-				Text:  "Period",
-				SmCol: 1,
-				MdCol: 2,
-				LgCol: 2,
-				Meta: []MetaModel{
-					{
-						Name:        "period",
-						DisplayExpr: "Select period",
-						Type:        "date_range",
-						ColSpan:     2,
-					},
-				},
-			},
-		},
-	})
+	var result = new(ResponseModel)
+	err := s.httpClient.Do(context.Background(), http.MethodPost, "/filters/search", filterPayload, result)
+	log.Printf("📁 GetFilter called with payload: %+v, result: %+v, error: %v\n", filterPayload, result, err)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to fetch filter",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(result)
 }

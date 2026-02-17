@@ -64,6 +64,10 @@ type SecretsConfig struct {
 	// minio
 	MINIO_ROOT_USER     string
 	MINIO_ROOT_PASSWORD string
+
+	// API Key
+	API_KEY    string
+	API_PREFIX string
 }
 
 var (
@@ -154,12 +158,24 @@ func LoadSecrets(client *api.Client) error {
 		return err
 	}
 
+	apiKey, err := getKV(client, "secret", "fiber-app", "api_key")
+	if err != nil {
+		return err
+	}
+
+	apiPrefix, err := getKV(client, "secret", "fiber-app", "api_prefix")
+	if err != nil {
+		return err
+	}
+
 	cfg.Secrets = SecretsConfig{
 		JWT_SECRET:          jwt,
 		DB_PASSWORD:         dbPassword,
 		REDIS_PASSWORD:      redisPassword,
 		MINIO_ROOT_USER:     minioRootUser,
 		MINIO_ROOT_PASSWORD: minioRootPassword,
+		API_KEY:             apiKey,
+		API_PREFIX:          apiPrefix,
 	}
 
 	log.Println("✅ Secrets loaded from Vault successfully")

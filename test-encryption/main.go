@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -54,16 +55,43 @@ func main() {
 			})
 		}
 
-		encrypt, err := AesDecrypt(KEY, IV, request.Message)
+		decrypt, err := AesDecrypt(KEY, IV, request.Message)
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error": "Encryption failed",
 			})
 		}
 
-		fmt.Println("Encrypted and Encoded Message:", encrypt)
+		fmt.Println("Encrypted and Encoded Message:", decrypt)
 
-		return c.SendString("Encryption Test Successful with pretoken: " + pretoken)
+		var response ResponseModel
+		response.Success = true
+		response.Status = 200
+		response.Message = "Decryption successful"
+		response.Timestamp = fmt.Sprintf("%d", c.Context().Time().Unix())
+		response.Info = infoModel{
+			ApiCode:        "FILTER_SEARCH",
+			ApiName:        "Filter Search",
+			ApiDescription: "API for searching filters",
+		}
+		response.Result = ResultModel{
+			Data: map[string]interface{}{},
+		}
+
+		message, err := json.Marshal(response)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to marshal response",
+			})
+		}
+
+		encrypt, _ := AesEncrypt(KEY, IV, string(message))
+
+		log.Printf("🔒 Encrypted API response: %s\n", encrypt)
+
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"message": encrypt,
+		})
 	})
 
 	log.Fatal(app.Listen(":9090"))

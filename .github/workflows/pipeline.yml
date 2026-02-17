@@ -47,8 +47,29 @@ jobs:
       - name: Go Vet
         run: cd backend && go vet ./cmd/api
       
-      - name: Go Test
-        run: cd backend && go test -v ./...
+      - name: Go Test with Coverage
+        run: | 
+          cd backend 
+          go test -v ./... -coverprofile=coverage.out -covermode=atomic
+
+      # --- DOCKER FILE LINT
+      - name: Lint Backend Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: backend/Dockerfile
+
+      # --- SONARQUBE SCAN backend
+      - name: Sonar Scan Backend
+        uses: SonarSource/sonarqube-scan-action@v7.0.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          args: >
+            -Dsonar.projectKey=go-fullstack-backend
+            -Dsonar.sources=backend
+            -Dsonar.go.coverage.reportPaths=backend/coverage.out
+          # -Dsonar.organization=modmastei2
 
       # --- FRONTEND TEST
       - name: Setup Node.js
@@ -65,27 +86,21 @@ jobs:
       - name: Frontend Build
         run: cd frontend && npm ci && npm run build
 
-      # --- DOCKER FILE LINT
-      - name: Lint Backend Dockerfile
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: backend/Dockerfile
-
       - name: Lint Frontend Dockerfile
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: frontend/Dockerfile 
 
-      - name: SonarQube Scan
+      # --- SONARQUBE SCAN frontend
+      - name: SonarQube Scan Frontend
         uses: SonarSource/sonarqube-scan-action@v7.0.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
           args: >
-            -Dsonar.projectKey=modmastei2_go-fullstack
-            -Dsonar.organization=modmastei2
-            -Dsonar.sources=.
+            -Dsonar.projectKey=go-fullstack-frontend
+            -Dsonar.sources=frontend
 
   build-image:
     if: github.ref_type == 'tag'
