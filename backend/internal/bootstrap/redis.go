@@ -24,26 +24,27 @@ func InitializeRedis() (*redis.Client, error) {
 		return nil, fmt.Errorf("invalid redis endpoint")
 	}
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     endpoint,
-		Password: cfg.Secrets.REDIS_PASSWORD,
-		DB:       dbParsed,
+		Addr:         endpoint,
+		Password:     cfg.Secrets.REDIS_PASSWORD,
+		DB:           dbParsed,
+		DialTimeout:  5 * time.Second,
+		ReadTimeout:  3 * time.Second,
+		WriteTimeout: 3 * time.Second,
 	})
 
 	maxRetry := cfg.Env.INIT_MAX_RETRY
 
-	for attempt := 1; attempt <= maxRetry; attempt++ {
-		err = verifyRedis(redisClient)
+	err = extensions.Retry(maxRetry, 1*time.Second, func() error {
+		return verifyRedis(redisClient)
+	})
 
-		if err == nil {
-			log.Println("✅ Redis client initialized successfully")
-			return redisClient, nil
-		}
-
-		log.Printf("Redis not ready (%d/%d): %v\n", attempt, maxRetry, err)
-		time.Sleep(time.Duration(attempt) * time.Second)
+	if err != nil {
+		log.Printf("❌ Redis initialization failed after %d attempts: %v\n", maxRetry, err)
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("Redis initialization failed after %d attempts", maxRetry)
+	log.Println("✅ Redis client initialized successfully")
+	return redisClient, nil
 }
 
 func verifyRedis(client *redis.Client) error {

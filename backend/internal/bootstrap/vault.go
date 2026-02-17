@@ -31,8 +31,36 @@ func InitializeVault() (*api.Client, error) {
 
 	maxRetry := cfg.Env.INIT_MAX_RETRY
 
-	for attempt := 1; attempt <= maxRetry; attempt++ {
-		var token string = cfg.Env.VAULT_TOKEN
+	// for attempt := 1; attempt <= maxRetry; attempt++ {
+	// 	var token string = cfg.Env.VAULT_TOKEN
+	// 	err = nil
+
+	// 	if !cfg.Env.VAULT_DEV_MODE {
+	// 		token, err = LoginWithK8s(cfg.Env.VAULT_HOST, cfg.Env.VAULT_ROLE)
+	// 	}
+
+	// 	if err != nil {
+	// 		log.Printf("Vault login failed (%d/%d): %v", attempt, maxRetry, err)
+	// 		time.Sleep(time.Duration(attempt) * time.Second)
+	// 		continue
+	// 	}
+
+	// 	// set the token
+	// 	client.SetToken(token)
+
+	// 	// verify the token
+	// 	err = verifyVault(client)
+
+	// 	if err == nil {
+	// 		log.Println("✅ Vault client initialized successfully")
+	// 		return client, nil
+	// 	}
+
+	// 	log.Printf("Vault not ready (%d/%d): %v", attempt, maxRetry, err)
+	// 	time.Sleep(time.Duration(attempt) * time.Second)
+	// }
+	var token string = cfg.Env.VAULT_TOKEN
+	err = extensions.Retry(maxRetry, 1*time.Second, func() error {
 		err = nil
 
 		if !cfg.Env.VAULT_DEV_MODE {
@@ -40,27 +68,23 @@ func InitializeVault() (*api.Client, error) {
 		}
 
 		if err != nil {
-			log.Printf("Vault login failed (%d/%d): %v", attempt, maxRetry, err)
-			time.Sleep(time.Duration(attempt) * time.Second)
-			continue
+			log.Printf("Vault login failed: %v", err)
+			return err
 		}
 
 		// set the token
 		client.SetToken(token)
 
-		// verify the token
-		err = verifyVault(client)
+		return verifyVault(client)
+	})
 
-		if err == nil {
-			log.Println("✅ Vault client initialized successfully")
-			return client, nil
-		}
-
-		log.Printf("Vault not ready (%d/%d): %v", attempt, maxRetry, err)
-		time.Sleep(time.Duration(attempt) * time.Second)
+	if err != nil {
+		log.Printf("❌ Vault initialization failed after %d attempts: %v\n", maxRetry, err)
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("vault initialization failed after %d attempts", maxRetry)
+	log.Println("✅ Vault client initialized successfully")
+	return client, nil
 }
 
 func LoginWithK8s(address string, role string) (string, error) {

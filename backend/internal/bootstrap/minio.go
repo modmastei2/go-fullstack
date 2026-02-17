@@ -29,20 +29,18 @@ func InitializeMinio() (*minio.Client, error) {
 
 	maxRetry := cfg.Env.INIT_MAX_RETRY
 
-	for attempt := 1; attempt <= maxRetry; attempt++ {
+	err = extensions.Retry(maxRetry, 1*time.Second, func() error {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
 		_, err = minioClient.BucketExists(ctx, cfg.Env.MINIO_BUCKET)
+		return err
+	})
 
-		if err == nil {
-			log.Println("✅ MinIO client initialized successfully")
-			return minioClient, nil
-		}
-
-		log.Printf("MinIO not ready (%d/%d): %v\n", attempt, maxRetry, err)
-		time.Sleep(time.Duration(attempt) * time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("❌ MinIO initialization failed after %d attempts: %v", maxRetry, err)
 	}
 
-	return nil, fmt.Errorf("MinIO initialization failed after %d attempts", maxRetry)
+	log.Println("✅ MinIO client initialized successfully")
+	return minioClient, nil
 }
