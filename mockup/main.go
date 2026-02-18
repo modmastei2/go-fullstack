@@ -64,7 +64,7 @@ func main() {
 
 		fmt.Println("Encrypted and Encoded Message:", decrypt)
 
-		var response ResponseModel
+		var response ResponseModel[FilterSearchParam]
 		response.Success = true
 		response.Status = 200
 		response.Message = "Decryption successful"
@@ -74,45 +74,57 @@ func main() {
 			ApiName:        "Filter Search",
 			ApiDescription: "API for searching filters",
 		}
-		response.Result = ResultModel{
-			Data: map[string]interface{}{
-				"search_param": map[string]interface{}{
-					"filter_type": "example",
-					"query":       "example query",
+		response.Result = ResultModel[FilterSearchParam]{
+			Data: FilterSearchParam{
+				SearchParam: map[string]any{
+					"value_group": 1,
 				},
-				"template": map[string]interface{}{
-					"detail_section": map[string]interface{}{
-						"grid": map[string]interface{}{
-							"columns":   12,
-							"rowGap":    8,
-							"columnGap": 8,
+				Template: FilterTemplate{
+					DetailSection: DetailSection{
+						Grid: Grid{
+							Columns:   12,
+							RowGap:    8,
+							ColumnGap: 8,
 						},
-						// array
-						"details": []map[string]interface{}{
+						Details: []Detail{
 							{
-								"row":      1,
-								"order":    1,
-								"col_span": 6,
-								"value": map[string]interface{}{
-									"id":       "value_group",
-									"type":     "dropdown",
-									"required": true,
-									"lines": []map[string]interface{}{
+								Row:     1,
+								Order:   1,
+								ColSpan: 6,
+								Value: Value{
+									Id:       "value_group",
+									Type:     "dropdown",
+									Required: true,
+									Lines: []Lines{
 										{
-											"segments": []map[string]interface{}{
+											Segments: []Segments{
 												{
-													"text": "Selected Group",
-													"attrs": map[string]interface{}{
-														"class": "modal_value_cyan",
+													Text: "Selected Group",
+													Attrs: Attrs{
+														Class: "modal_value_cyan",
 													},
 												},
 												{
-													"text": "Control view column apply:",
-													"attrs": map[string]interface{}{
-														"class": "text-xs text-gray-600 dark:text-gray-400",
+													Text: "Control view column apply:",
+													Attrs: Attrs{
+														Class: "text-xs text-gray-600 dark:text-gray-400",
 													},
 												},
 											},
+										},
+									},
+									Options: []map[string]any{
+										{
+											"text":  "Bond Transactions",
+											"value": "1",
+										},
+										{
+											"text":  "Equity Transactions",
+											"value": "2",
+										},
+										{
+											"text":  "Other Transactions",
+											"value": "3",
 										},
 									},
 								},

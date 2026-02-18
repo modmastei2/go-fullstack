@@ -65,6 +65,14 @@ func NewHttpClient(baseURL string) *XHttpClient {
 	}
 }
 
+func (hc *XHttpClient) DoGet(ctx context.Context, path string, responseBody interface{}) error {
+	return hc.Do(ctx, http.MethodGet, path, nil, responseBody)
+}
+
+func (hc *XHttpClient) DoPost(ctx context.Context, path string, requestBody interface{}, responseBody interface{}) error {
+	return hc.Do(ctx, http.MethodPost, path, requestBody, responseBody)
+}
+
 func (hc *XHttpClient) Do(ctx context.Context, method string, path string, requestBody interface{}, responseBody interface{}) error {
 	ctx, cancel := context.WithTimeout(ctx, hc.client.Timeout)
 	defer cancel()
@@ -76,11 +84,13 @@ func (hc *XHttpClient) Do(ctx context.Context, method string, path string, reque
 	API_PREFIX := cfg.Secrets.API_PREFIX
 
 	// Generate pretoken and token
-	pretoken := time.Now().Format("20060102150405")
+	now := time.Now()
+	pretoken := now.Format("20060102150405")
+	rawToken := pretoken
+
 	encodedPreToken := extensions.EncodeTextToBase64(pretoken)
 	IV := fmt.Sprintf("%s%s", API_PREFIX, pretoken)
 
-	rawToken := time.Now().Format("20060102150405")
 	// Encrypt the raw token to create the final token
 	token, err := extensions.AesEncrypt(API_KEY, IV, rawToken)
 	if err != nil {
@@ -88,9 +98,12 @@ func (hc *XHttpClient) Do(ctx context.Context, method string, path string, reque
 	}
 
 	rb, err := json.Marshal(requestBody)
+	if err != nil {
+		return err
+	}
 
 	encrypted, err := extensions.AesEncrypt(API_KEY, IV, string(rb))
-	log.Printf("↖️ Send Request to %s%s with method %s and headers: pretoken=%s, token=%s, encrypted=%s", hc.baseUrl, path, method, encodedPreToken, token, encrypted)
+
 	if err != nil {
 		return err
 	}
@@ -104,26 +117,31 @@ func (hc *XHttpClient) Do(ctx context.Context, method string, path string, reque
 		return err
 	}
 
-	httpRequest, err := http.NewRequestWithContext(ctx, method, url, bytes.NewBuffer(payload))
-	if err != nil {
-		return err
-	}
-
-	httpRequest.Header.Set("Content-Type", "application/json")
-
-	// add header
-	httpRequest.Header.Set("requester", "fiber-app")
-	httpRequest.Header.Set("pretoken", encodedPreToken)
-	httpRequest.Header.Set("token", token)
-	httpRequest.Header.Set("application", "KSWP")
-
 	_, err = hc.breaker.Execute(func() (interface{}, error) {
 		return nil, extensions.Retry(3, 200*time.Millisecond, func() error {
+			httpRequest, err := http.NewRequestWithContext(ctx, method, url, bytes.NewBuffer(payload))
+			if err != nil {
+				return err
+			}
+
+			httpRequest.Header.Set("Content-Type", "application/json")
+			httpRequest.Header.Set("requester", "fiber-app")
+			httpRequest.Header.Set("pretoken", encodedPreToken)
+			httpRequest.Header.Set("token", token)
+			httpRequest.Header.Set("application", "KSWP")
+
+			log.Printf("↖️ Send Request to %s%s with method %s and headers: pretoken=%s, token=%s, encrypted=%s", hc.baseUrl, path, method, encodedPreToken, token, encrypted)
+
 			resp, err := hc.client.Do(httpRequest)
 			if err != nil {
 				return err
 			}
 			defer resp.Body.Close()
+
+			// const isSuccessStatusCode = resp.StatusCode == 200;
+			if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+				return fmt.Errorf("Unexpected HTTP status: %d", resp.StatusCode)
+			}
 
 			responseBytes, err := io.ReadAll(resp.Body)
 			if err != nil {
@@ -142,7 +160,7 @@ func (hc *XHttpClient) Do(ctx context.Context, method string, path string, reque
 
 			log.Printf("↘️ Received API response with headers: pretoken=%s, token=%s, response=%s", encodedPreToken, token, APIResponse.Message)
 
-			return json.Unmarshal([]byte(decrypted), &responseBody)
+			return json.Unmarshal([]byte(decrypted), responseBody)
 		})
 	})
 
