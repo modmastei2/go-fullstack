@@ -4,13 +4,13 @@ type FilterPayload struct {
 	FilterKey string `json:"filter_key"`
 }
 
-type ResponseModel struct {
-	Success   bool        `json:"success"`
-	Status    int         `json:"status"`
-	Message   string      `json:"message"`
-	Timestamp string      `json:"timestamp"`
-	Info      infoModel   `json:"info,omitempty"`
-	Result    ResultModel `json:"result,omitempty"`
+type ResponseModel[T any] struct {
+	Success   bool           `json:"success"`
+	Status    int            `json:"status"`
+	Message   string         `json:"message"`
+	Timestamp string         `json:"timestamp"`
+	Info      infoModel      `json:"info,omitempty"`
+	Result    ResultModel[T] `json:"result,omitempty"`
 }
 
 type infoModel struct {
@@ -19,6 +19,6 @@ type infoModel struct {
 	ApiDescription string `json:"api_description"`
 }
 
-type ResultModel struct {
-	Data interface{} `json:"data"`
+type ResultModel[T any] struct {
+	Data T `json:"data"`
 }

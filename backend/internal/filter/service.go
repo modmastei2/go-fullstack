@@ -3,7 +3,7 @@ package filter
 import (
 	"context"
 	"go-backend/internal/client"
-	"log"
+	"go-backend/internal/shared"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
@@ -30,7 +30,7 @@ func (s *FilterService) GetFilter(c *fiber.Ctx) error {
 		})
 	}
 
-	var response = new(ResponseModel)
+	var response = new(ResponseModel[shared.FilterSearchParam])
 	err := s.httpClient.Do(context.Background(), http.MethodPost, "/filters/search", filterPayload, response)
 
 	if err != nil {
@@ -38,8 +38,6 @@ func (s *FilterService) GetFilter(c *fiber.Ctx) error {
 			"error": "Failed to fetch filter",
 		})
 	}
-
-	log.Println(response.Result.Data)
 
 	return c.Status(fiber.StatusOK).JSON(response)
 }
