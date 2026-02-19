@@ -17,8 +17,8 @@ interface SelectBoxProps {
     placeholder?: string;
     options: SelectOption[];
     cascading?: {
-        dependsOn: string;
-        groupKey: string;
+        depends_on: string;
+        group_key: string;
     };
     showClearButton?: boolean;
     multiple?: boolean;
@@ -37,13 +37,13 @@ export default function SelectBox({
     parentValue,
     disabled,
     showClearButton = false,
-    multiple = true,
+    multiple = false,
     onChange,
     onClear,
 }: SelectBoxProps) {
     const filteredOptions = options.filter((option) => {
-        if (cascading && cascading.dependsOn && cascading.groupKey) {
-            return option[cascading.groupKey] === parentValue;
+        if (cascading && cascading.depends_on && cascading.group_key) {
+            return option[cascading.group_key] === parentValue;
         }
         return true;
     });
@@ -88,7 +88,7 @@ export default function SelectBox({
                 }}
                 displayEmpty>
                 {placeholder && (
-                    <MenuItem disabled={showClearButton} value="">
+                    <MenuItem disabled={showClearButton || multiple} value="">
                         {placeholder}
                     </MenuItem>
                 )}

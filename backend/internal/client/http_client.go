@@ -153,12 +153,12 @@ func (hc *XHttpClient) Do(ctx context.Context, method string, path string, reque
 				return err
 			}
 
+			log.Printf("↘️ Received API response with headers: pretoken=%s, token=%s, response=%s", encodedPreToken, token, APIResponse.Message)
+
 			decrypted, err := extensions.AesDecrypt(API_KEY, IV, APIResponse.Message)
 			if err != nil {
 				return err
 			}
-
-			log.Printf("↘️ Received API response with headers: pretoken=%s, token=%s, response=%s", encodedPreToken, token, APIResponse.Message)
 
 			return json.Unmarshal([]byte(decrypted), responseBody)
 		})

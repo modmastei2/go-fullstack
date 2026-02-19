@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -55,16 +54,16 @@ func main() {
 			})
 		}
 
-		decrypt, err := AesDecrypt(KEY, IV, request.Message)
+		decrypt, err := UnlockPayload[FilterPayload](c, KEY, IV, request.Message)
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Encryption failed",
+				"error": err.Error(),
 			})
 		}
 
 		fmt.Println("Encrypted and Encoded Message:", decrypt)
 
-		var response ResponseModel[FilterSearchParam]
+		var response ResponseModel[FilterModel]
 		response.Success = true
 		response.Status = 200
 		response.Message = "Decryption successful"
@@ -74,10 +73,10 @@ func main() {
 			ApiName:        "Filter Search",
 			ApiDescription: "API for searching filters",
 		}
-		response.Result = ResultModel[FilterSearchParam]{
-			Data: FilterSearchParam{
+		response.Result = ResultModel[FilterModel]{
+			Data: FilterModel{
 				SearchParam: map[string]any{
-					"value_group": 1,
+					"value_group": "1",
 				},
 				Template: FilterTemplate{
 					DetailSection: DetailSection{
@@ -90,16 +89,18 @@ func main() {
 							{
 								Row:     1,
 								Order:   1,
-								ColSpan: 6,
+								ColSpan: 4,
 								Value: Value{
-									Id:       "value_group",
-									Type:     "dropdown",
-									Required: true,
+									Id:              "value_group",
+									Type:            "dropdown",
+									Required:        true,
+									ShowClearButton: true, //	add new
+									Multiple:        true, //	add new
 									Lines: []Lines{
 										{
 											Segments: []Segments{
 												{
-													Text: "Selected Group",
+													Text: "Selected Group :",
 													Attrs: Attrs{
 														Class: "modal_value_cyan",
 													},
@@ -129,22 +130,160 @@ func main() {
 									},
 								},
 							},
+							{
+								Row:     1,
+								Order:   2,
+								ColSpan: 4,
+								Value: Value{
+									Id:              "sale_team",
+									Type:            "dropdown",
+									Required:        false,
+									ShowClearButton: true,
+									Lines: []Lines{
+										{
+											Segments: []Segments{
+												{
+													Text: "Sales Team :",
+													Attrs: Attrs{
+														Class: "modal_value_cyan",
+													},
+												},
+											},
+										},
+									},
+									Options: []map[string]any{
+										{
+											"text":  "Team A",
+											"value": "TEAM_A",
+										},
+										{
+											"text":  "Team B",
+											"value": "TEAM_B",
+										},
+										{
+											"text":  "Team C",
+											"value": "TEAM_C",
+										},
+									},
+								},
+							},
+							{
+								Row:     1,
+								Order:   3,
+								ColSpan: 4,
+								Value: Value{
+									Id:       "sales_name",
+									Type:     "dropdown",
+									Required: true,
+									Cascading: Cascading{
+										DependsOn: "sale_team",
+										GroupKey:  "team",
+									},
+									Lines: []Lines{
+										{
+											Segments: []Segments{
+												{
+													Text: "Sales Name :",
+													Attrs: Attrs{
+														Class: "modal_value_cyan",
+													},
+												},
+											},
+										},
+									},
+									Options: []map[string]any{
+										{
+											"text":  "Alice",
+											"value": "ALICE",
+											"team":  "TEAM_A",
+										},
+										{
+											"text":  "Bob",
+											"value": "BOB",
+											"team":  "TEAM_B",
+										},
+										{
+											"text":  "Charlie",
+											"value": "CHARLIE",
+											"team":  "TEAM_C",
+										},
+									},
+								},
+							},
 						},
 					},
 				},
 			},
 		}
 
-		message, err := json.Marshal(response)
+		encrypt, err := LockResult(c, KEY, IV, response)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to marshal response",
+				"error": "Failed to encrypt response",
 			})
 		}
 
-		encrypt, _ := AesEncrypt(KEY, IV, string(message))
-
 		log.Printf("🔒 Encrypted API response: %s\n", encrypt)
+
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"message": encrypt,
+		})
+	})
+
+	api.Post("/customers/search", func(c *fiber.Ctx) error {
+		pretoken, err := DecodeBase64ToText(c.Get("pretoken"))
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid pretoken",
+			})
+		}
+
+		KEY := os.Getenv("API_KEY")
+		PREFIX := os.Getenv("PREFIX")
+		IV := fmt.Sprintf("%s%s", PREFIX, pretoken)
+
+		request := new(RequestModel)
+		if err := c.BodyParser(request); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid request body",
+			})
+		}
+
+		decrypt, err := UnlockPayload[ResultModel[FilterModel]](c, KEY, IV, request.Message)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		}
+
+		fmt.Println("Encrypted and Encoded Message:", decrypt)
+
+		var response ResponseModel[any]
+		response.Success = true
+		response.Status = 200
+		response.Message = "Customer search successful"
+		response.Timestamp = fmt.Sprintf("%d", c.Context().Time().Unix())
+		response.Info = infoModel{
+			ApiCode:        "CUSTOMER_SEARCH",
+			ApiName:        "Customer Search",
+			ApiDescription: "API for searching customers based on filter criteria",
+		}
+		response.Result = ResultModel[any]{
+			Data: map[string]any{
+				"customers": []map[string]any{
+					{
+						"id":   "CUST001",
+						"name": "John Doe",
+					},
+				},
+			},
+		}
+		encrypt, err := LockResult(c, KEY, IV, response)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to encrypt response",
+			})
+		}
 
 		return c.Status(fiber.StatusOK).JSON(fiber.Map{
 			"message": encrypt,

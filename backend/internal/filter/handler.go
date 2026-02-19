@@ -13,4 +13,5 @@ func RegisterRoutes(app *fiber.Router, redisClient *redis.Client, httpClient *cl
 	protected := (*app).Group("/filter")
 
 	protected.Post("/get-filter", filterService.GetFilter)
+	protected.Post("/fire-search", filterService.FireSearch)
 }

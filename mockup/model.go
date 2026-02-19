@@ -1,5 +1,9 @@
 package main
 
+type FilterPayload struct {
+	FilterKey string `json:"filter_key"`
+}
+
 type RequestModel struct {
 	Message string `json:"message"`
 }
@@ -25,7 +29,7 @@ type ResultModel[T any] struct {
 
 // ===== Get Filter & Search Param
 
-type FilterSearchParam struct {
+type FilterModel struct {
 	SearchParam map[string]any `json:"search_param"`
 	Template    FilterTemplate `json:"template"`
 }
@@ -60,6 +64,7 @@ type Value struct {
 	Required        bool                     `json:"required,omitempty"`
 	Placeholder     string                   `json:"placeholder,omitempty"`
 	ShowClearButton bool                     `json:"showClearButton,omitempty"`
+	Multiple        bool                     `json:"multiple,omitempty"`
 	Disabled        bool                     `json:"disabled,omitempty"`
 	Options         []map[string]interface{} `json:"options,omitempty"`
 }
@@ -81,8 +86,3 @@ type Segments struct {
 type Attrs struct {
 	Class string `json:"class"`
 }
-
-// type SelectOptions struct {
-// 	Text  string `json:"text"`
-// 	Value string `json:"value"`
-// }
