@@ -1,17 +1,13 @@
 package shared
 
 type TableModel struct { // head for client360, historical transaction, event notification
-	TableTemplate  TableTemplate  `json:"table_template"`
-	LegendTemplate LegendTemplate `json:"legend_template"`
+	TableTemplate  TableTemplate        `json:"table_template"`
+	LegendTemplate GeneralDetailSection `json:"legend_template"`
 }
 
 type TableTemplate struct {
 	TableSection []TableSection   `json:"table_section"`
 	ColsData     []map[string]any `json:"cols_data"`
-}
-
-type LegendTemplate struct {
-	DetailSection GeneralDetailSection `json:"detail_section"`
 }
 
 type TableSection struct {
